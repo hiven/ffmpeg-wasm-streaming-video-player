@@ -1,68 +1,99 @@
-console.log("Start");
+const { Observable, fromEvent, partition, combineLatest, zip } = rxjs;
+const { map, flatMap, take, skip } = rxjs.operators;
 
-const sourceBuffer = fetch("input.avi")
-  .then(response => {
-    if (!response.ok) {
-      throw new Error("Network response was not ok");
-    }
-    console.log("Fetching input AVI file...");
-    return response.arrayBuffer();
-  })
-  .then(arrayBuffer => {
-    // Work with the array buffer
-    console.log("Array buffer:", arrayBuffer);
-  })
-  .catch(error => {
-    console.error("There was a problem with the fetch operation:", error);
+const bufferStream = filename =>
+  new Observable(async subscriber => {
+    const ffmpeg = FFmpeg.createFFmpeg({
+      corePath: "thirdparty/ffmpeg-core.js",
+      log: false
+    });
+
+    const fileExists = file => ffmpeg.FS("readdir", "/").includes(file);
+    const readFile = file => ffmpeg.FS("readFile", file);
+
+    await ffmpeg.load();
+    const sourceBuffer = await fetch(filename).then(r => r.arrayBuffer());
+    ffmpeg.FS(
+      "writeFile",
+      "input.mp4",
+      new Uint8Array(sourceBuffer, 0, sourceBuffer.byteLength)
+    );
+
+    let index = 0;
+
+    ffmpeg
+      .run(
+        "-i",
+        "input.mp4",
+        "-g",
+        "1",
+        // Encode for MediaStream
+        "-segment_format_options",
+        "movflags=frag_keyframe+empty_moov+default_base_moof",
+        // encode 5 second segments
+        "-segment_time",
+        "5",
+        // write to files by index
+        "-f",
+        "segment",
+        "%d.mp4"
+      )
+      .then(() => {
+        // send out the remaining files
+        while (fileExists(`${index}.mp4`)) {
+          subscriber.next(readFile(`${index}.mp4`));
+          index++;
+        }
+        subscriber.complete();
+      });
+
+    setInterval(() => {
+      // periodically check for files that have been written
+      if (fileExists(`${index + 1}.mp4`)) {
+        subscriber.next(readFile(`${index}.mp4`));
+        index++;
+      }
+    }, 200);
   });
 
+const mediaSource = new MediaSource();
+videoPlayer.src = URL.createObjectURL(mediaSource);
+videoPlayer.play();
 
-async function loadFFmpeg() {
-  // Create the FFmpeg instance with logging enabled
-  const ffmpeg = createFFmpeg({ log: true, logger: m => console.log(m) });
+const mediaSourceOpen = fromEvent(mediaSource, "sourceopen");
 
-  // Log a message indicating that FFmpeg is being loaded
-  console.log("Loading FFmpeg...");
+const bufferStreamReady = combineLatest(
+  mediaSourceOpen,
+  bufferStream("tests/4club-JTV-i63.mp4")
+).pipe(map(([, a]) => a));
 
-  // Asynchronously load FFmpeg
-  await ffmpeg.load();
+const sourceBufferUpdateEnd = bufferStreamReady.pipe(
+  take(1),
+  map(buffer => {
+    // create a buffer using the correct mime type
+    const mime = `video/mp4; codecs="${muxjs.mp4.probe
+      .tracks(buffer)
+      .map(t => t.codec)
+      .join(",")}"`;
+    const sourceBuf = mediaSource.addSourceBuffer(mime);
 
-  // Log a message indicating that FFmpeg has been loaded successfully
-  console.log("FFmpeg loaded successfully.");
+    // append the buffer
+    mediaSource.duration = 5;
+    sourceBuf.timestampOffset = 0;
+    sourceBuf.appendBuffer(buffer);
 
-  // Return the loaded FFmpeg instance
-  return ffmpeg;
-}
+    // create a new event stream 
+    return fromEvent(sourceBuf, "updateend").pipe(map(() => sourceBuf));
+  }),
+  flatMap(value => value)
+);
 
-// Call the async function
-loadFFmpeg()
-  .then(ffmpeg => {
-    // Now you can use the loaded FFmpeg instance here
-    console.log("FFmpeg instance:", ffmpeg);
-  })
-  .catch(error => {
-    // Handle errors
-    console.error("Error loading FFmpeg:", error);
-  });
-
-
-// write the AVI to the FFmpeg file system
-console.log("Writing AVI file to FFmpeg file system...");
-ffmpeg.FS("writeFile", "input.avi", new Uint8Array(sourceBuffer, 0, sourceBuffer.byteLength));
-console.log("AVI file written successfully.");
-
-// run the FFmpeg command-line tool, converting the AVI into an MP4
-console.log("Running FFmpeg to convert AVI to MP4...");
-await ffmpeg.run("-i", "input.avi", "output.mp4");
-console.log("Conversion completed successfully.");
-
-// read the MP4 file back from the FFmpeg file system
-console.log("Reading MP4 file from FFmpeg file system...");
-const output = ffmpeg.FS("readFile", "output.mp4");
-console.log("MP4 file read successfully.");
-
-// ... and now do something with the file
-const video = document.getElementById("video");
-console.log("Setting video source...");
-video.src = URL.createObjectURL(new Blob([output.buffer], { type: "video/mp4" }));
-console.log("Video source set successfully.");
+zip(sourceBufferUpdateEnd, bufferStreamReady.pipe(skip(1)))
+  .pipe(
+    map(([sourceBuf, buffer]) => {
+      mediaSource.duration += 5;
+      sourceBuf.timestampOffset += 5;
+      sourceBuf.appendBuffer(buffer.buffer);
+    })
+  )
+  .subscribe();
