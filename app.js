@@ -4,7 +4,7 @@ const bufferStream = filename =>
   new Observable(async subscriber => {
     const ffmpeg = FFmpeg.createFFmpeg({
       corePath: "thirdparty/ffmpeg-core.js",
-      log: false
+      log: true
     });
 
     const readFile = file => ffmpeg.FS("readFile", file);
