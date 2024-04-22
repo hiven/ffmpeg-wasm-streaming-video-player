@@ -17,11 +17,34 @@ const sourceBuffer = fetch("input.avi")
   });
 
 
-// create the FFmpeg instance and load it
-const ffmpeg = createFFmpeg({ log: true, logger: m => console.log(m) });
-console.log("Loading FFmpeg...");
-await ffmpeg.load();
-console.log("FFmpeg loaded successfully.");
+async function loadFFmpeg() {
+  // Create the FFmpeg instance with logging enabled
+  const ffmpeg = createFFmpeg({ log: true, logger: m => console.log(m) });
+
+  // Log a message indicating that FFmpeg is being loaded
+  console.log("Loading FFmpeg...");
+
+  // Asynchronously load FFmpeg
+  await ffmpeg.load();
+
+  // Log a message indicating that FFmpeg has been loaded successfully
+  console.log("FFmpeg loaded successfully.");
+
+  // Return the loaded FFmpeg instance
+  return ffmpeg;
+}
+
+// Call the async function
+loadFFmpeg()
+  .then(ffmpeg => {
+    // Now you can use the loaded FFmpeg instance here
+    console.log("FFmpeg instance:", ffmpeg);
+  })
+  .catch(error => {
+    // Handle errors
+    console.error("Error loading FFmpeg:", error);
+  });
+
 
 // write the AVI to the FFmpeg file system
 console.log("Writing AVI file to FFmpeg file system...");
