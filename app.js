@@ -1,9 +1,21 @@
 console.log("Start");
 
-const sourceBuffer = await fetch("input.avi").then(r => {
-  console.log("Fetching input AVI file...");
-  return r.arrayBuffer();
-});
+const sourceBuffer = fetch("input.avi")
+  .then(response => {
+    if (!response.ok) {
+      throw new Error("Network response was not ok");
+    }
+    console.log("Fetching input AVI file...");
+    return response.arrayBuffer();
+  })
+  .then(arrayBuffer => {
+    // Work with the array buffer
+    console.log("Array buffer:", arrayBuffer);
+  })
+  .catch(error => {
+    console.error("There was a problem with the fetch operation:", error);
+  });
+
 
 // create the FFmpeg instance and load it
 const ffmpeg = createFFmpeg({ log: true, logger: m => console.log(m) });
