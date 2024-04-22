@@ -1,3 +1,5 @@
+console.log("Start");
+
 const sourceBuffer = await fetch("input.avi").then(r => {
   console.log("Fetching input AVI file...");
   return r.arrayBuffer();
