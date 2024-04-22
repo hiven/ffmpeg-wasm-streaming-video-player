@@ -1,5 +1,4 @@
-const { Observable, fromEvent, partition, combineLatest, zip } = rxjs;
-const { map, flatMap, take, skip } = rxjs.operators;
+const { Observable } = rxjs;
 
 const bufferStream = filename =>
   new Observable(async subscriber => {
@@ -8,7 +7,6 @@ const bufferStream = filename =>
       log: false
     });
 
-    const fileExists = file => ffmpeg.FS("readdir", "/").includes(file);
     const readFile = file => ffmpeg.FS("readFile", file);
 
     await ffmpeg.load();
@@ -19,78 +17,31 @@ const bufferStream = filename =>
       new Uint8Array(sourceBuffer, 0, sourceBuffer.byteLength)
     );
 
-    let index = 0;
-
     ffmpeg
-      .run(
-        "-i",
-        "input.mp4",
-        "-g",
-        "1",
-        "-segment_format_options",
-        "movflags=frag_keyframe+empty_moov+default_base_moof",
-        "-segment_time",
-        "5",
-        "-f",
-        "segment",
-        "%d.mp4"
-      )
-      .then(() => {
-        // send out the remaining files
-        while (fileExists(`${index}.mp4`)) {
-          subscriber.next(readFile(`${index}.mp4`));
-          index++;
-        }
+      .run("-i", "input.mp4", "-c", "copy", "output.mp4")
+      .then(async () => {
+        const outputBuffer = await readFile("output.mp4");
+        subscriber.next(outputBuffer);
         subscriber.complete();
+      })
+      .catch(error => {
+        subscriber.error(error);
       });
-
-    setInterval(() => {
-      // periodically check for files that have been written
-      if (fileExists(`${index + 1}.mp4`)) {
-        subscriber.next(readFile(`${index}.mp4`));
-        index++;
-      }
-    }, 200);
   });
 
 const mediaSource = new MediaSource();
+const videoPlayer = document.getElementById("videoPlayer");
 videoPlayer.src = URL.createObjectURL(mediaSource);
 videoPlayer.play();
 
-const mediaSourceOpen = fromEvent(mediaSource, "sourceopen");
+const bufferStreamReady = bufferStream("tests/4club-JTV-i63.mp4");
 
-const bufferStreamReady = combineLatest(
-  mediaSourceOpen,
-  bufferStream("tests/4club-JTV-i63.mp4")
-).pipe(map(([, a]) => a));
-
-const sourceBufferUpdateEnd = bufferStreamReady.pipe(
-  take(1),
-  map(buffer => {
-    // create a buffer using the correct mime type
-    const mime = `video/mp4; codecs="${muxjs.mp4.probe
-      .tracks(buffer)
-      .map(t => t.codec)
-      .join(",")}"`;
-    const sourceBuf = mediaSource.addSourceBuffer(mime);
-
-    // append the buffer
-    mediaSource.duration = 5;
-    sourceBuf.timestampOffset = 0;
-    sourceBuf.appendBuffer(buffer);
-
-    // create a new event stream 
-    return fromEvent(sourceBuf, "updateend").pipe(map(() => sourceBuf));
-  }),
-  flatMap(value => value)
-);
-
-zip(sourceBufferUpdateEnd, bufferStreamReady.pipe(skip(1)))
-  .pipe(
-    map(([sourceBuf, buffer]) => {
-      mediaSource.duration += 5;
-      sourceBuf.timestampOffset += 5;
-      sourceBuf.appendBuffer(buffer.buffer);
-    })
-  )
-  .subscribe();
+bufferStreamReady.subscribe(buffer => {
+  const mime = `video/mp4; codecs="${muxjs.mp4.probe
+    .tracks(buffer)
+    .map(t => t.codec)
+    .join(",")}"`;
+  const sourceBuf = mediaSource.addSourceBuffer(mime);
+  sourceBuf.timestampOffset = 0;
+  sourceBuf.appendBuffer(buffer);
+});
