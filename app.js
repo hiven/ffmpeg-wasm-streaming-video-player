@@ -21,23 +21,28 @@ const bufferStream = filename =>
 
     let index = 0;
 
-ffmpeg
-  .run(
-    "-i",
-    "input.mp4",
-    "-t",
-    "10", // Crop to first 10 seconds
-    "output.mp4"
-  )
-  .then(() => {
-    if (fileExists("output.mp4")) {
-      subscriber.next(readFile("output.mp4"));
-      subscriber.complete();
-    } else {
-      subscriber.error("Output file not found");
-    }
-  });
-
+    ffmpeg
+      .run(
+        "-i",
+        "input.mp4",
+        "-g",
+        "1",
+        "-segment_format_options",
+        "movflags=frag_keyframe+empty_moov+default_base_moof",
+        "-segment_time",
+        "5",
+        "-f",
+        "segment",
+        "%d.mp4"
+      )
+      .then(() => {
+        // send out the remaining files
+        while (fileExists(`${index}.mp4`)) {
+          subscriber.next(readFile(`${index}.mp4`));
+          index++;
+        }
+        subscriber.complete();
+      });
 
     setInterval(() => {
       // periodically check for files that have been written
