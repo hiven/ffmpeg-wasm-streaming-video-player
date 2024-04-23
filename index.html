@@ -13,16 +13,22 @@
         align-items: center;
       }
       #output-video {width: 450px;}
+      .hidden { display: none; }
     </style>
   </head>
   <body>
     <h3>Upload a mp4 (x264) video and trim</h3>
-    <label for="start-time">Start Time (in seconds):</label>
-    <input type="number" id="start-time" value="0"><br>
-    <label for="end-time">End Time (in seconds):</label>
-    <input type="number" id="end-time" value="1"><br>
-    <video id="output-video" controls></video><br/>
-    <input type="file" id="uploader">
+    <div id="file-input">
+      <label for="uploader">Select a video file:</label>
+      <input type="file" id="uploader">
+    </div>
+    <div id="trim-input" class="hidden">
+      <label for="start-time">Start Time (in seconds):</label>
+      <input type="number" id="start-time" value="0"><br>
+      <label for="end-time">End Time (in seconds):</label>
+      <input type="number" id="end-time" readonly><br>
+    </div>
+    <video id="output-video" controls class="hidden"></video><br/>
     <p id="message"></p>
     <script>
       const { createFFmpeg, fetchFile } = FFmpeg;
@@ -30,6 +36,9 @@
 
       const trim = async ({ target: { files } }) => {
         const message = document.getElementById('message');
+        const fileInput = document.getElementById('file-input');
+        const trimInput = document.getElementById('trim-input');
+        const videoElement = document.getElementById('output-video');
         const { name } = files[0];
         const startTime = document.getElementById('start-time').value;
         const endTime = document.getElementById('end-time').value;
@@ -44,18 +53,31 @@
         message.innerHTML = 'Complete trimming';
         const data = ffmpeg.FS('readFile', 'output.mp4');
 
-        const video = document.getElementById('output-video');
-        video.src = URL.createObjectURL(new Blob([data.buffer], { type: 'video/mp4' }));
+        videoElement.src = URL.createObjectURL(new Blob([data.buffer], { type: 'video/mp4' }));
+        videoElement.classList.remove('hidden');
       }
       
       const elm = document.getElementById('uploader');
-      elm.addEventListener('change', trim);
-
+      elm.addEventListener('change', (event) => {
+        const fileInput = document.getElementById('file-input');
+        const trimInput = document.getElementById('trim-input');
+        fileInput.classList.add('hidden');
+        trimInput.classList.remove('hidden');
+        const videoElement = document.getElementById('output-video');
+        videoElement.addEventListener('loadedmetadata', () => {
+          const endTimeInput = document.getElementById('end-time');
+          endTimeInput.value = Math.floor(videoElement.duration);
+        });
+      });
+      
       const video = document.getElementById('output-video');
       video.addEventListener('loadedmetadata', () => {
         const endTimeInput = document.getElementById('end-time');
         endTimeInput.value = Math.floor(video.duration);
       });
+      
+      const trimButton = document.getElementById('trim-button');
+      trimButton.addEventListener('click', trim);
     </script>
   </body>
 </html>
