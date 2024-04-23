@@ -73,6 +73,10 @@
         const files = uploader.files;
         originalFile = files[0];
         videoElement.src = URL.createObjectURL(originalFile);
+        // Trigger a change event on the file input
+        uploader.value = null; // Reset the value to allow re-uploading the same file
+        const event = new Event('change');
+        uploader.dispatchEvent(event);
     });
 
     const trimButton = document.getElementById('trim-button');
