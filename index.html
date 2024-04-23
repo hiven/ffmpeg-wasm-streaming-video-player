@@ -83,9 +83,6 @@
 
             // Display trimmed video on the page
             videoElement.src = URL.createObjectURL(new Blob([data.buffer], { type: 'video/mp4' }));
-            
-            // Clear the value of the file input to allow picking another file
-            uploader.value = '';
         }
 
         submitButton.addEventListener('click', function(event) {
