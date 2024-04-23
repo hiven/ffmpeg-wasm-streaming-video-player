@@ -18,6 +18,7 @@
   </head>
   <body>
     <h3>Upload a mp4 (x264) video and trim</h3>
+    <input type="file" id="uploader">
     <video id="output-video" autoplay controls class="hidden"></video><br/>
     <div id="trim-input" class="hidden">
       <label for="start-time">Start Time (in seconds):</label>
@@ -26,7 +27,6 @@
       <input type="number" id="end-time" value="1"><br>
       <button id="trim-button">Trim</button>
     </div>
-    <input type="file" id="uploader">
     <p id="message"></p>
     <script>
       const { createFFmpeg, fetchFile } = FFmpeg;
