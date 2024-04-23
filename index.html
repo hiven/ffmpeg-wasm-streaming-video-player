@@ -46,7 +46,7 @@
         message.innerHTML = 'Start trimming';
 
         ffmpeg.FS('writeFile', file.name, await fetchFile(file));
-        await ffmpeg.run('-i', file.name, '-ss', startTime, '-to', endTime, 'output.mp4');
+        await ffmpeg.run('-i', file.name, '-ss', startTime, '-to', endTime, '-c:v', 'copy', 'output.mp4');
 
         message.innerHTML = 'Complete trimming';
         const data = ffmpeg.FS('readFile', 'output.mp4');
