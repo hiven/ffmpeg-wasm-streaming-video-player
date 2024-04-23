@@ -63,9 +63,9 @@
         videoElement.src = URL.createObjectURL(new Blob([data.buffer], { type: 'video/mp4' }));
         videoElement.classList.remove('hidden');
 
-        // Manually trigger change event on file input
-        const event = new Event('change');
-        uploader.dispatchEvent(event);
+        // Reset file input value to trigger change event
+        uploader.value = '';
+        uploader.dispatchEvent(new Event('change'));
     }
 
     const uploader = document.getElementById('uploader');
