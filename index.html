@@ -27,13 +27,13 @@
 <body>
 <h3>Upload a mp4 (x264) video and trim</h3>
 
-<form action="/upload-original" method="post" enctype="multipart/form-data" id="uploadForm">
+<form action="/upload" method="post" enctype="multipart/form-data" id="uploadForm">
     <input type="file" name="videoFile" id="uploader">
     <label for="start-time">Start Time (in seconds):</label>
     <input type="number" id="start-time" value="0"><br>
     <label for="end-time">End Time (in seconds):</label>
     <input type="number" id="end-time" value="1"><br>
-    <button type="button" id="trimButton">Trim</button>
+    <button type="submit" id="submitButton">Submit</button>
 </form>
 
 <video id="output-video" autoplay controls class="hidden"></video><br/>
@@ -46,12 +46,10 @@
 
     document.addEventListener("DOMContentLoaded", function() {
         const uploader = document.getElementById('uploader');
-        const trimButton = document.getElementById('trimButton');
+        const submitButton = document.getElementById('submitButton');
         const videoElement = document.getElementById('output-video');
 
         uploader.addEventListener('change', handleFileChange);
-
-        trimButton.addEventListener('click', trim);
 
         function handleFileChange() {
             videoElement.classList.remove('hidden');
@@ -60,7 +58,7 @@
             videoElement.src = URL.createObjectURL(originalFile);
         }
 
-        async function trim() {
+        async function trimAndUpload() {
             const message = document.getElementById('message');
             const startTime = document.getElementById('start-time').value;
             const endTime = document.getElementById('end-time').value;
@@ -75,19 +73,23 @@
             message.innerHTML = 'Complete trimming';
             const data = ffmpeg.FS('readFile', 'output.mp4');
 
-            videoElement.src = URL.createObjectURL(new Blob([data.buffer], { type: 'video/mp4' }));
-            videoElement.classList.remove('hidden');
-
             // Reset file input value to trigger change event
             uploader.value = '';
 
-            // Send trimmed video file via AJAX
+            // Create a new FormData object and append the trimmed video file
             const formData = new FormData();
-            formData.append('trimmedVideo', new Blob([data.buffer], { type: 'video/mp4' }));
+            formData.append('videoFile', new Blob([data.buffer], { type: 'video/mp4' }));
+
+            // Submit the form with the trimmed video file
             const xhr = new XMLHttpRequest();
-            xhr.open('POST', '/upload-trimmed', true);
+            xhr.open('POST', '/upload', true);
             xhr.send(formData);
         }
+
+        submitButton.addEventListener('click', function(event) {
+            event.preventDefault(); // Prevent default form submission behavior
+            trimAndUpload(); // Trigger the trimming and upload process
+        });
     });
 </script>
 </body>
