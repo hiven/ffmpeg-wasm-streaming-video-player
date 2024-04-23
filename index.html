@@ -23,6 +23,7 @@
       <input type="number" id="start-time" value="0"><br>
       <label for="end-time">End Time (in seconds):</label>
       <input type="number" id="end-time" value="1"><br>
+      <button id="trim-button">Trim</button>
     </div>
     <video id="output-video" controls class="hidden"></video><br/>
     <input type="file" id="uploader">
@@ -31,12 +32,12 @@
       const { createFFmpeg, fetchFile } = FFmpeg;
       const ffmpeg = createFFmpeg({ log: true });
 
-      const trim = async ({ target: { files } }) => {
+      const trim = async () => {
         const message = document.getElementById('message');
-        const fileInput = document.getElementById('uploader');
+        const files = document.getElementById('uploader').files;
+        const file = files[0];
         const trimInput = document.getElementById('trim-input');
         const videoElement = document.getElementById('output-video');
-        const { name } = files[0];
         const startTime = document.getElementById('start-time').value;
         const endTime = document.getElementById('end-time').value;
 
@@ -44,8 +45,8 @@
         await ffmpeg.load();
         message.innerHTML = 'Start trimming';
 
-        ffmpeg.FS('writeFile', name, await fetchFile(files[0]));
-        await ffmpeg.run('-i', name, '-ss', startTime, '-to', endTime, 'output.mp4');
+        ffmpeg.FS('writeFile', file.name, await fetchFile(file));
+        await ffmpeg.run('-i', file.name, '-ss', startTime, '-to', endTime, 'output.mp4');
 
         message.innerHTML = 'Complete trimming';
         const data = ffmpeg.FS('readFile', 'output.mp4');
@@ -54,23 +55,10 @@
         videoElement.classList.remove('hidden');
       }
       
-      const elm = document.getElementById('uploader');
-      elm.addEventListener('change', (event) => {
-        const fileInput = document.getElementById('uploader');
+      const uploader = document.getElementById('uploader');
+      uploader.addEventListener('change', () => {
         const trimInput = document.getElementById('trim-input');
-        fileInput.classList.add('hidden');
         trimInput.classList.remove('hidden');
-        const videoElement = document.getElementById('output-video');
-        videoElement.addEventListener('loadedmetadata', () => {
-          const endTimeInput = document.getElementById('end-time');
-          endTimeInput.value = Math.floor(videoElement.duration);
-        });
-      });
-      
-      const video = document.getElementById('output-video');
-      video.addEventListener('loadedmetadata', () => {
-        const endTimeInput = document.getElementById('end-time');
-        endTimeInput.value = Math.floor(video.duration);
       });
       
       const trimButton = document.getElementById('trim-button');
