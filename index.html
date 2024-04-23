@@ -36,6 +36,7 @@
     <button type="submit" id="submitButton">Submit</button>
 </form>
 
+<!-- Added video element to display output -->
 <video id="output-video" autoplay controls class="hidden"></video><br/>
 <p id="message"></p>
 
@@ -76,14 +77,18 @@
             // Reset file input value to trigger change event
             uploader.value = '';
 
+            // Commenting out form submission via AJAX
             // Create a new FormData object and append the trimmed video file
-            const formData = new FormData();
-            formData.append('videoFile', new Blob([data.buffer], { type: 'video/mp4' }));
+            // const formData = new FormData();
+            // formData.append('videoFile', new Blob([data.buffer], { type: 'video/mp4' }));
 
             // Submit the form with the trimmed video file
-            const xhr = new XMLHttpRequest();
-            xhr.open('POST', '/upload', true);
-            xhr.send(formData);
+            // const xhr = new XMLHttpRequest();
+            // xhr.open('POST', '/upload', true);
+            // xhr.send(formData);
+
+            // Display trimmed video on the page
+            videoElement.src = URL.createObjectURL(new Blob([data.buffer], { type: 'video/mp4' }));
         }
 
         submitButton.addEventListener('click', function(event) {
