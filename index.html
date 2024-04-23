@@ -26,46 +26,29 @@
 </head>
 <body>
 <h3>Upload a mp4 (x264) video and trim</h3>
-<input type="file" id="uploader" onchange="handleFileChange()" onclick="this.value = null;">
+
+<form action="/upload-and-trim" method="post" enctype="multipart/form-data" id="uploadForm">
+    <input type="file" name="videoFile">
+    <input type="number" name="startTime" value="0">
+    <input type="number" name="endTime" value="1">
+    <button type="submit" id="submitButton">Submit</button>
+    <input type="hidden" id="trimmedVideo" name="trimmedVideo">
+</form>
+
 <video id="output-video" autoplay controls class="hidden"></video><br/>
 <div id="trim-input" class="hidden">
     <label for="start-time">Start Time (in seconds):</label>
     <input type="number" id="start-time" value="0"><br>
     <label for="end-time">End Time (in seconds):</label>
     <input type="number" id="end-time" value="1"><br>
-    <button id="trim-button">Submit</button>
+    <button id="trim-button">Trim</button>
 </div>
 <p id="message"></p>
+
 <script>
-    const {createFFmpeg, fetchFile} = FFmpeg;
-    const ffmpeg = createFFmpeg({log: true});
+    const { createFFmpeg, fetchFile } = FFmpeg;
+    const ffmpeg = createFFmpeg({ log: true });
     let originalFile = null;
-
-    const trim = async () => {
-        const message = document.getElementById('message');
-        const files = document.getElementById('uploader').files;
-        const file = files[0];
-        const trimInput = document.getElementById('trim-input');
-        const videoElement = document.getElementById('output-video');
-        const startTime = document.getElementById('start-time').value;
-        const endTime = document.getElementById('end-time').value;
-
-        message.innerHTML = 'Loading resources';
-        await ffmpeg.load();
-        message.innerHTML = 'Start trimming';
-
-        ffmpeg.FS('writeFile', file.name, await fetchFile(file));
-        await ffmpeg.run('-i', file.name, '-ss', startTime, '-to', endTime, '-c:v', 'copy', 'output.mp4');
-
-        message.innerHTML = 'Complete trimming';
-        const data = ffmpeg.FS('readFile', 'output.mp4');
-
-        videoElement.src = URL.createObjectURL(new Blob([data.buffer], { type: 'video/mp4' }));
-        videoElement.classList.remove('hidden');
-
-        // Reset file input value to trigger change event
-        uploader.value = '';
-    }
 
     const handleFileChange = () => {
         const videoElement = document.getElementById('output-video');
@@ -78,6 +61,36 @@
     }
 
     const uploader = document.getElementById('uploader');
+    uploader.addEventListener('change', handleFileChange);
+
+    const trim = async () => {
+        const message = document.getElementById('message');
+        const files = originalFile;
+        const trimInput = document.getElementById('trim-input');
+        const videoElement = document.getElementById('output-video');
+        const startTime = document.getElementById('start-time').value;
+        const endTime = document.getElementById('end-time').value;
+
+        message.innerHTML = 'Loading resources';
+        await ffmpeg.load();
+        message.innerHTML = 'Start trimming';
+
+        ffmpeg.FS('writeFile', files.name, await fetchFile(files));
+        await ffmpeg.run('-i', files.name, '-ss', startTime, '-to', endTime, '-c:v', 'copy', 'output.mp4');
+
+        message.innerHTML = 'Complete trimming';
+        const data = ffmpeg.FS('readFile', 'output.mp4');
+
+        videoElement.src = URL.createObjectURL(new Blob([data.buffer], { type: 'video/mp4' }));
+        videoElement.classList.remove('hidden');
+
+        // Set the trimmed video data in the hidden input field
+        const trimmedVideoInput = document.getElementById('trimmedVideo');
+        trimmedVideoInput.value = data;
+
+        // Reset file input value to trigger change event
+        uploader.value = '';
+    }
 
     const trimButton = document.getElementById('trim-button');
     trimButton.addEventListener('click', trim);
