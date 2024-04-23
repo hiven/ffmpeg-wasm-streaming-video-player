@@ -29,19 +29,14 @@
 
 <form action="/upload-original" method="post" enctype="multipart/form-data" id="uploadForm">
     <input type="file" name="videoFile" id="uploader">
-    <input type="number" name="startTime" value="0">
-    <input type="number" name="endTime" value="1">
-    <button type="button" id="trimButton">Trim</button>
-</form>
-
-<video id="output-video" autoplay controls class="hidden"></video><br/>
-<div id="trim-input" class="hidden">
     <label for="start-time">Start Time (in seconds):</label>
     <input type="number" id="start-time" value="0"><br>
     <label for="end-time">End Time (in seconds):</label>
     <input type="number" id="end-time" value="1"><br>
-    <button id="submitTrimButton">Submit Trim</button>
-</div>
+    <button type="button" id="trimButton">Trim</button>
+</form>
+
+<video id="output-video" autoplay controls class="hidden"></video><br/>
 <p id="message"></p>
 
 <script>
@@ -52,7 +47,6 @@
     document.addEventListener("DOMContentLoaded", function() {
         const uploader = document.getElementById('uploader');
         const trimButton = document.getElementById('trimButton');
-        const trimInput = document.getElementById('trim-input');
         const videoElement = document.getElementById('output-video');
 
         uploader.addEventListener('change', handleFileChange);
@@ -61,7 +55,6 @@
 
         function handleFileChange() {
             videoElement.classList.remove('hidden');
-            trimInput.classList.remove('hidden');
             const files = uploader.files;
             originalFile = files[0];
             videoElement.src = URL.createObjectURL(originalFile);
