@@ -44,10 +44,6 @@
     const trim = async () => {
         const message = document.getElementById('message');
         const files = document.getElementById('uploader').files;
-        if (!files || !files[0]) {
-            message.innerHTML = 'No file selected';
-            return;
-        }
         const file = files[0];
         const trimInput = document.getElementById('trim-input');
         const videoElement = document.getElementById('output-video');
@@ -75,10 +71,11 @@
         videoElement.classList.remove('hidden');
         trimInput.classList.remove('hidden');
         const files = uploader.files;
-        if (files && files[0]) {
-            originalFile = files[0];
-            videoElement.src = URL.createObjectURL(originalFile);
-        }
+        originalFile = files[0];
+        videoElement.src = URL.createObjectURL(originalFile);
+        // Trigger a change event on the file input
+        const event = new Event('change');
+        uploader.dispatchEvent(event);
     });
 
     const trimButton = document.getElementById('trim-button');
