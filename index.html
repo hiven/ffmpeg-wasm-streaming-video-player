@@ -64,8 +64,11 @@
             const startTime = document.getElementById('start-time').value;
             const endTime = document.getElementById('end-time').value;
 
-            message.innerHTML = 'Loading resources';
-            await ffmpeg.load();
+           
+               if (!ffmpeg.isLoaded()) { // Check if ffmpeg.wasm is already loaded
+                    message.innerHTML = 'Loading resources';
+                await ffmpeg.load();
+            }
             message.innerHTML = 'Start trimming';
 
             ffmpeg.FS('writeFile', originalFile.name, await fetchFile(originalFile));
