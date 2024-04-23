@@ -50,6 +50,12 @@
       
       const elm = document.getElementById('uploader');
       elm.addEventListener('change', trim);
+
+      const video = document.getElementById('output-video');
+      video.addEventListener('loadedmetadata', () => {
+        const endTimeInput = document.getElementById('end-time');
+        endTimeInput.value = video.duration;
+      });
     </script>
   </body>
 </html>
