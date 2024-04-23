@@ -42,53 +42,50 @@
 
 <script>
     const { createFFmpeg, fetchFile } = FFmpeg;
-    const ffmpeg = createFFmpeg({ log: true });
-    let originalFile = null;
+    let ffmpeg = null; // Initialize ffmpeg variable
 
-    document.addEventListener("DOMContentLoaded", function() {
+    document.addEventListener("DOMContentLoaded", async function() {
         const uploader = document.getElementById('uploader');
         const submitButton = document.getElementById('submitButton');
         const videoElement = document.getElementById('output-video');
+
+        // Check if ffmpeg is already loaded
+        if (!FFmpeg.isLoaded()) {
+            ffmpeg = createFFmpeg({ log: true });
+            await ffmpeg.load(); // Load ffmpeg only once
+        } else {
+            ffmpeg = FFmpeg.getInstance(); // Retrieve existing instance
+        }
 
         uploader.addEventListener('change', handleFileChange);
 
         function handleFileChange() {
             videoElement.classList.remove('hidden');
             const files = uploader.files;
-            originalFile = files[0];
+            const originalFile = files[0];
             videoElement.src = URL.createObjectURL(originalFile);
         }
 
         async function trimAndUpload() {
             const message = document.getElementById('message');
+            const files = uploader.files;
+            const file = files[0];
             const startTime = document.getElementById('start-time').value;
             const endTime = document.getElementById('end-time').value;
 
-            message.innerHTML = 'Loading resources';
-            await ffmpeg.load();
             message.innerHTML = 'Start trimming';
 
-            ffmpeg.FS('writeFile', originalFile.name, await fetchFile(originalFile));
-            await ffmpeg.run('-i', originalFile.name, '-ss', startTime, '-to', endTime, '-c:v', 'copy', 'output.mp4');
+            ffmpeg.FS('writeFile', file.name, await fetchFile(file));
+            await ffmpeg.run('-i', file.name, '-ss', startTime, '-to', endTime, '-c:v', 'copy', 'output.mp4');
 
             message.innerHTML = 'Complete trimming';
             const data = ffmpeg.FS('readFile', 'output.mp4');
 
-            // Reset file input value to trigger change event
-            uploader.value = '';
-
-            // Commenting out form submission via AJAX
-            // Create a new FormData object and append the trimmed video file
-            // const formData = new FormData();
-            // formData.append('videoFile', new Blob([data.buffer], { type: 'video/mp4' }));
-
-            // Submit the form with the trimmed video file
-            // const xhr = new XMLHttpRequest();
-            // xhr.open('POST', '/upload', true);
-            // xhr.send(formData);
-
             // Display trimmed video on the page
             videoElement.src = URL.createObjectURL(new Blob([data.buffer], { type: 'video/mp4' }));
+            
+            // Clear the value of the file input to allow picking another file
+            uploader.value = '';
         }
 
         submitButton.addEventListener('click', function(event) {
