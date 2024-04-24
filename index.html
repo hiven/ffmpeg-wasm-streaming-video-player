@@ -8,11 +8,18 @@
 <h3>Video Editor</h3>
 <video id="output-video" autoplay controls class="hidden"></video><br/>
 <form action="/upload" method="post" enctype="multipart/form-data" id="uploadForm">
-    <input type="file" name="videoFile" id="uploader">
-    <label for="start-time">Start Time (in seconds):</label>
-    <input type="number" id="start-time" value="0"><br>
-    <label for="end-time">End Time (in seconds):</label>
-    <input type="number" id="end-time" value="1"><br>
+    <div style="margin-bottom: 10px;">
+        <label for="uploader">Upload Video:</label><br>
+        <input type="file" name="videoFile" id="uploader">
+    </div>
+    <div style="margin-bottom: 10px;">
+        <label for="start-time">Start Time (in seconds):</label><br>
+        <input type="number" id="start-time" value="0"><br>
+    </div>
+    <div style="margin-bottom: 10px;">
+        <label for="end-time">End Time (in seconds):</label><br>
+        <input type="number" id="end-time" value="1"><br>
+    </div>
     <button type="submit" id="submitButton">Submit</button>
 </form>
 
