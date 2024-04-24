@@ -1,6 +1,8 @@
 <!DOCTYPE html>
 <html>
 <head>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/noUiSlider/14.7.0/nouislider.min.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/noUiSlider/14.7.0/nouislider.min.css">
     <script src="js/ffmpeg.min.js"></script>
     <link rel="stylesheet" href="css/style.css">
 </head>
@@ -19,6 +21,7 @@
         <input type="number" id="end-time" value="1"><br>
         <label for="duration">Duration (in seconds):</label><br>
         <span id="duration"></span><br>
+        <div id="slider"></div><br>
     </div>
     <button type="submit" id="submitButton">Submit</button>
 </form>
@@ -38,6 +41,7 @@
         const videoElement = document.getElementById('output-video');
         const timeFields = document.getElementById('timeFields');
         const durationSpan = document.getElementById('duration');
+        const slider = document.getElementById('slider');
 
         uploader.addEventListener('change', handleFileChange);
 
@@ -46,7 +50,7 @@
             const files = uploader.files;
             originalFile = files[0];
             videoElement.src = URL.createObjectURL(originalFile);
-            
+
             // Show the time fields once a video is uploaded
             timeFields.style.display = 'block';
 
@@ -55,7 +59,28 @@
             video.src = URL.createObjectURL(originalFile);
             video.onloadedmetadata = function() {
                 durationSpan.textContent = video.duration.toFixed(2);
+                // Initialize slider after getting duration
+                initializeSlider(video.duration);
             };
+        }
+
+        function initializeSlider(duration) {
+            noUiSlider.create(slider, {
+                start: [0, duration],
+                connect: true,
+                range: {
+                    'min': 0,
+                    'max': duration
+                }
+            });
+
+            slider.noUiSlider.on('update', function(values, handle) {
+                if (handle === 0) {
+                    document.getElementById('start-time').value = values[handle];
+                } else {
+                    document.getElementById('end-time').value = values[handle];
+                }
+            });
         }
 
         async function trimAndUpload() {
