@@ -12,11 +12,9 @@
         <label for="uploader">Upload Video:</label><br>
         <input type="file" name="videoFile" id="uploader">
     </div>
-    <div style="margin-bottom: 10px;">
+    <div id="timeFields" style="margin-bottom: 10px; display: none;">
         <label for="start-time">Start Time (in seconds):</label><br>
         <input type="number" id="start-time" value="0"><br>
-    </div>
-    <div style="margin-bottom: 10px;">
         <label for="end-time">End Time (in seconds):</label><br>
         <input type="number" id="end-time" value="1"><br>
     </div>
@@ -36,6 +34,7 @@
         const uploader = document.getElementById('uploader');
         const submitButton = document.getElementById('submitButton');
         const videoElement = document.getElementById('output-video');
+        const timeFields = document.getElementById('timeFields');
 
         uploader.addEventListener('change', handleFileChange);
 
@@ -44,6 +43,9 @@
             const files = uploader.files;
             originalFile = files[0];
             videoElement.src = URL.createObjectURL(originalFile);
+            
+            // Show the time fields once a video is uploaded
+            timeFields.style.display = 'block';
         }
 
         async function trimAndUpload() {
@@ -51,9 +53,8 @@
             const startTime = document.getElementById('start-time').value;
             const endTime = document.getElementById('end-time').value;
 
-           
-               if (!ffmpeg.isLoaded()) { // Check if ffmpeg.wasm is already loaded
-                    message.innerHTML = 'Loading resources';
+            if (!ffmpeg.isLoaded()) { // Check if ffmpeg.wasm is already loaded
+                message.innerHTML = 'Loading resources';
                 await ffmpeg.load();
             }
             message.innerHTML = 'Start trimming';
@@ -70,8 +71,7 @@
             // Commenting out form submission via AJAX
             // Create a new FormData object and append the trimmed video file
             // const formData = new FormData();
-            // formData.append('videoFile', new Blob([data.buffer], { type: 'video/mp4' }));
-
+            // formData.append(...)
             // Submit the form with the trimmed video file
             // const xhr = new XMLHttpRequest();
             // xhr.open('POST', '/upload', true);
