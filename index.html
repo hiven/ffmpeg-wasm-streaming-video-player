@@ -17,6 +17,8 @@
         <input type="number" id="start-time" value="0"><br>
         <label for="end-time">End Time (in seconds):</label><br>
         <input type="number" id="end-time" value="1"><br>
+        <label for="duration">Duration (in seconds):</label><br>
+        <span id="duration"></span><br>
     </div>
     <button type="submit" id="submitButton">Submit</button>
 </form>
@@ -35,6 +37,7 @@
         const submitButton = document.getElementById('submitButton');
         const videoElement = document.getElementById('output-video');
         const timeFields = document.getElementById('timeFields');
+        const durationSpan = document.getElementById('duration');
 
         uploader.addEventListener('change', handleFileChange);
 
@@ -46,6 +49,13 @@
             
             // Show the time fields once a video is uploaded
             timeFields.style.display = 'block';
+
+            // Get the duration of the video file
+            const video = document.createElement('video');
+            video.src = URL.createObjectURL(originalFile);
+            video.onloadedmetadata = function() {
+                durationSpan.textContent = video.duration.toFixed(2);
+            };
         }
 
         async function trimAndUpload() {
@@ -71,7 +81,8 @@
             // Commenting out form submission via AJAX
             // Create a new FormData object and append the trimmed video file
             // const formData = new FormData();
-            // formData.append(...)
+            // formData.append...
+
             // Submit the form with the trimmed video file
             // const xhr = new XMLHttpRequest();
             // xhr.open('POST', '/upload', true);
