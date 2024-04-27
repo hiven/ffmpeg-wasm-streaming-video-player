@@ -5,6 +5,7 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/noUiSlider/14.7.0/nouislider.min.css">
     <script src="js/ffmpeg.min.js"></script>
     <link rel="stylesheet" href="css/style.css">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
 </head>
 <body>
 <h3>Video Editor</h3>
@@ -68,6 +69,7 @@
             noUiSlider.create(slider, {
                 start: [0, duration],
                 connect: true,
+                step: 1,
                 range: {
                     'min': 0,
                     'max': duration
