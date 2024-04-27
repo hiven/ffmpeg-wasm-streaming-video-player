@@ -73,7 +73,10 @@
                 range: {
                     'min': 0,
                     'max': duration
-                }
+                },
+                behaviour: 'drag-tap',
+                limit: 20,
+                margin: 10
             });
 
             slider.noUiSlider.on('update', function(values, handle) {
