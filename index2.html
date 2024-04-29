@@ -23,14 +23,14 @@
         <span id="duration"></span><br>
         <div id="slider"></div><br>
     </div>
-    <button type="submit" id="submitButton">Submit</button>
+    <button type="submit" id="submitButton" style="display: none;">Submit</button>
 </form>
 
 <!-- Cancel button -->
 <button id="cancelButton" style="display: none;">Cancel</button>
 
 <!-- Added video element to display output -->
-<p id="message"></p>
+<output id="output-video"></output>
 
 <script>
     const { createFFmpeg, fetchFile } = FFmpeg;
@@ -41,16 +41,17 @@
         const uploader = document.getElementById('uploader');
         const submitButton = document.getElementById('submitButton');
         const cancelButton = document.getElementById('cancelButton');
-        const videoElement = document.getElementById('output-video');
+        const videoOutput = document.getElementById('output-video');
         const timeFields = document.getElementById('timeFields');
         const durationSpan = document.getElementById('duration');
         const slider = document.getElementById('slider');
 
         uploader.addEventListener('change', function() {
-            videoElement.classList.remove('hidden');
+            submitButton.style.display = 'block';
             const files = uploader.files;
             originalFile = files[0];
-            videoElement.src = URL.createObjectURL(originalFile);
+            videoOutput.classList.remove('hidden');
+            videoOutput.src = URL.createObjectURL(originalFile);
 
             // Show the time fields once a video is uploaded
             timeFields.style.display = 'block';
@@ -88,6 +89,7 @@
                 } else {
                     document.getElementById('end-time').value = values[handle];
                 }
+                renderTrimmedVideo();
             });
         }
 
@@ -115,7 +117,15 @@
             cancelButton.style.display = 'none';
 
             // Display trimmed video on the page
-            videoElement.src = URL.createObjectURL(new Blob([data.buffer], { type: 'video/mp4' }));
+            videoOutput.src = URL.createObjectURL(new Blob([data.buffer], { type: 'video/mp4' }));
+        }
+
+        function renderTrimmedVideo() {
+            const startTime = parseFloat(document.getElementById('start-time').value);
+            const endTime = parseFloat(document.getElementById('end-time').value);
+            const videoURL = URL.createObjectURL(originalFile);
+            const trimmedVideoURL = videoURL + '#t=' + startTime + ',' + endTime;
+            videoOutput.src = trimmedVideoURL;
         }
 
         submitButton.addEventListener('click', function(event) {
