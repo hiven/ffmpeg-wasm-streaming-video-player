@@ -15,13 +15,31 @@
             display: flex;
             flex-direction: column;
         }
+        #video-container {
+            position: relative;
+        }
+        #playback-bar {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            width: 100%;
+            background-color: rgba(0, 0, 0, 0.5);
+            height: 5px;
+        }
+        #playback-progress {
+            height: 100%;
+            background-color: #ffffff;
+        }
     </style>
 </head>
 <body>
 <div class="container">
     <h3>Video Editor</h3>
-    <div id="video-preview">
+    <div id="video-container">
         <video id="output-video" loop controls playsinline class="hidden"></video>
+        <div id="playback-bar">
+            <div id="playback-progress"></div>
+        </div>
     </div>
     <div id="slider"></div><br/>
     <form action="/upload" method="post" enctype="multipart/form-data" id="uploadForm">
@@ -61,6 +79,7 @@
         const slider = document.getElementById('slider');
         const startTimeInput = document.getElementById('start-time');
         const endTimeInput = document.getElementById('end-time');
+        const playbackProgress = document.getElementById('playback-progress');
 
         uploader.addEventListener('change', handleFileChange);
 
@@ -156,8 +175,11 @@
 
             videoElement.currentTime = start; // Set video playback to the start position
 
-            // Start a new interval to check and reset video playback
+            // Start a new interval to update playback progress
             playInterval = setInterval(function() {
+                const progress = (videoElement.currentTime - start) / (end - start);
+                playbackProgress.style.width = (progress * 100) + '%';
+
                 if (videoElement.currentTime >= end) {
                     videoElement.currentTime = start;
                 }
