@@ -1,0 +1,174 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/noUiSlider/14.7.0/nouislider.min.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/noUiSlider/14.7.0/nouislider.min.css">
+    <script src="js/ffmpeg.min.js"></script>
+    <link rel="stylesheet" href="css/style.css">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <style>
+        .container {
+            width: 500px;
+            margin: 0 auto; /* Center the container horizontally */
+        }
+        #video-controls {
+            display: flex;
+            flex-direction: column;
+        }
+    </style>
+</head>
+<body>
+<div class="container">
+    <h3>Video Editor</h3>
+    <div id="video-preview">
+        <video id="output-video" loop controls playsinline class="hidden"></video>
+    </div>
+    <div id="slider"></div><br/>
+    <form action="/upload" method="post" enctype="multipart/form-data" id="uploadForm">
+        <div style="margin-bottom: 10px;">
+            <label for="uploader">Upload Video:</label><br>
+            <input type="file" name="videoFile" id="uploader">
+        </div>
+        <div id="timeFields" style="margin-bottom: 10px; display: none;">
+            <label for="start-time">Start Time (in seconds):</label><br>
+            <input type="number" id="start-time" value="0"><br>
+            <label for="end-time">End Time (in seconds):</label><br>
+            <input type="number" id="end-time" value="1"><br>
+            <label for="duration">Duration (in seconds):</label><br>
+            <span id="duration"></span><br>
+        </div>
+        <button type="submit" id="submitButton">Submit</button>
+    </form>
+
+    <!-- Added video element to display output -->
+
+    <p id="message"></p>
+</div>
+
+<script>
+    const { createFFmpeg, fetchFile } = FFmpeg;
+    const ffmpeg = createFFmpeg({ log: true });
+    let originalFile = null;
+    let sliderInstance = null;
+    let playInterval = null;
+
+    document.addEventListener("DOMContentLoaded", function() {
+        const uploader = document.getElementById('uploader');
+        const submitButton = document.getElementById('submitButton');
+        const videoElement = document.getElementById('output-video');
+        const timeFields = document.getElementById('timeFields');
+        const durationSpan = document.getElementById('duration');
+        const slider = document.getElementById('slider');
+        const startTimeInput = document.getElementById('start-time');
+        const endTimeInput = document.getElementById('end-time');
+
+        uploader.addEventListener('change', handleFileChange);
+
+        function handleFileChange() {
+            videoElement.classList.remove('hidden');
+            const files = uploader.files;
+            originalFile = files[0];
+            videoElement.src = URL.createObjectURL(originalFile);
+
+            // Show the time fields once a video is uploaded
+            timeFields.style.display = 'block';
+
+            // Get the duration of the video file
+            const video = document.createElement('video');
+            video.src = URL.createObjectURL(originalFile);
+            video.onloadedmetadata = function() {
+                durationSpan.textContent = video.duration.toFixed(2);
+                // Initialize slider after getting duration
+                initializeSlider(video.duration);
+            };
+        }
+
+        function initializeSlider(duration) {
+            if (sliderInstance) {
+                sliderInstance.destroy();
+            }
+
+            sliderInstance = noUiSlider.create(slider, {
+                start: [0, duration],
+                connect: true,
+                step: 1,
+                range: {
+                    'min': 0,
+                    'max': duration
+                },
+                behaviour: 'drag-tap',
+                limit: 60,
+                margin: 10
+            });
+
+            sliderInstance.on('update', function(values, handle) {
+                if (handle === 0) {
+                    startTimeInput.value = values[handle];
+                } else {
+                    endTimeInput.value = values[handle];
+                }
+            });
+
+            // Add event listener to update video playback range when slider changes
+            sliderInstance.on('change', function(values, handle) {
+                const start = parseFloat(values[0]);
+                const end = parseFloat(values[1]);
+                updateVideoPlaybackRange(start, end);
+            });
+        }
+
+        async function trimAndUpload() {
+            const message = document.getElementById('message');
+            const startTime = parseFloat(startTimeInput.value);
+            const endTime = parseFloat(endTimeInput.value);
+
+            if (!ffmpeg.isLoaded()) { // Check if ffmpeg.wasm is already loaded
+                message.innerHTML = 'Loading resources';
+                await ffmpeg.load();
+            }
+            message.innerHTML = 'Start trimming';
+
+            ffmpeg.FS('writeFile', originalFile.name, await fetchFile(originalFile));
+            await ffmpeg.run('-i', originalFile.name, '-ss', startTime, '-to', endTime, '-c:v', 'copy', 'output.mp4');
+
+            message.innerHTML = 'Complete trimming';
+            const data = ffmpeg.FS('readFile', 'output.mp4');
+
+            // Reset file input value to trigger change event
+            uploader.value = '';
+
+            // Commenting out form submission via AJAX
+            // Create a new FormData object and append the trimmed video file
+            // const formData = new FormData();
+            // formData.append...
+
+            // Submit the form with the trimmed video file
+            // const xhr = new XMLHttpRequest();
+            // xhr.open('POST', '/upload', true);
+            // xhr.send(formData);
+
+            // Display trimmed video on the page
+            videoElement.src = URL.createObjectURL(new Blob([data.buffer], { type: 'video/mp4' }));
+        }
+
+        function updateVideoPlaybackRange(start, end) {
+            clearInterval(playInterval); // Clear any existing interval
+
+            videoElement.currentTime = start; // Set video playback to the start position
+
+            // Start a new interval to check and reset video playback
+            playInterval = setInterval(function() {
+                if (videoElement.currentTime >= end) {
+                    videoElement.currentTime = start;
+                }
+            }, 1000); // Check every second
+        }
+
+        submitButton.addEventListener('click', function(event) {
+            event.preventDefault(); // Prevent default form submission behavior
+            trimAndUpload(); // Trigger the trimming and upload process
+        });
+    });
+</script>
+</body>
+</html>
