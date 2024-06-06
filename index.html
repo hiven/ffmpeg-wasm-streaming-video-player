@@ -27,9 +27,7 @@
             margin-top: 20px;
         }
         .thumbnail canvas {
-            width: 40px;
-            height: 30px; /* Adjust as needed */
-            border: 1px solid #ccc;
+            border: none; /* Remove border around the canvas */
         }
     </style>
 </head>
@@ -103,28 +101,25 @@
                 message.innerHTML = 'Generating thumbnails...';
                 thumbnailsContainer.innerHTML = ''; // Clear any existing thumbnails
 
-                const canvas = document.createElement('canvas');
-                const ctx = canvas.getContext('2d');
-
-                // Wait for the video to be loaded
-                await new Promise(resolve => {
-                    videoElement.onloadeddata = resolve;
-                });
-
-                canvas.width = videoElement.videoWidth;
-                canvas.height = videoElement.videoHeight;
-
                 for (let i = 0; i < 10; i++) {
                     const timestamp = (duration / 10) * i;
                     videoElement.currentTime = timestamp;
                     await new Promise(resolve => {
                         videoElement.onseeked = async () => {
-                            ctx.drawImage(videoElement, 0, 0, canvas.width, canvas.height, 0, 0, 40, 30); // Adjust dimensions for thumbnail size
-                            const img = document.createElement('img');
-                            img.src = canvas.toDataURL('image/jpeg');
-                            img.alt = `Thumbnail ${i + 1}`;
-                            thumbnailsContainer.appendChild(img);
-                            resolve();
+                            const img = new Image();
+                            img.onload = () => {
+                                const canvas = document.createElement('canvas');
+                                canvas.width = img.width;
+                                canvas.height = img.height;
+                                const ctx = canvas.getContext('2d');
+                                ctx.drawImage(img, 0, 0);
+                                const thumbnail = document.createElement('div');
+                                thumbnail.classList.add('thumbnail');
+                                thumbnail.appendChild(canvas);
+                                thumbnailsContainer.appendChild(thumbnail);
+                                resolve();
+                            };
+                            img.src = videoElement.toDataURL();
                         };
                     });
                 }
