@@ -7,12 +7,30 @@
     <link rel="stylesheet" href="css/style.css">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <style>
-        .container {width: 500px; margin: 0 auto;}
-        .thumbnails {display: flex;flex-wrap: wrap;gap: 10px;margin-top: 20px;}
-        .thumbnail img {width: 100px;height: auto;}
-        #video-controls {display: flex; flex-direction: column;}
-        #output-video {width: 100%;}
-        #slider {width: 100%;}
+        .container {
+            width: 500px;
+            margin: 0 auto; /* Center the container horizontally */
+        }
+        #video-controls {
+            display: flex;
+            flex-direction: column;
+        }
+        #output-video {
+            width: 100%; /* Set the video width to 100% of its parent container */
+        }
+        #slider {
+            width: 100%; /* Set the slider width to 100% of its parent container */
+        }
+        .thumbnails {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            margin-top: 20px;
+        }
+        .thumbnail img {
+            width: 100px;
+            height: auto;
+        }
     </style>
 </head>
 <body>
@@ -126,8 +144,15 @@
                     const timestamp = (frameInterval * i).toFixed(2);
                     const outputImageName = `thumbnail${i}.jpg`;
 
-                    // Extract the frame at the specified timestamp
-                    await ffmpeg.run('-i', originalFile.name, '-ss', timestamp, '-frames:v', '1', '-q:v', '2', outputImageName);
+                    // Extract the frame at the specified timestamp and resize it
+                    await ffmpeg.run(
+                        '-i', originalFile.name,
+                        '-ss', timestamp,
+                        '-frames:v', '1',
+                        '-vf', 'scale=320:-1', // Resize the thumbnail to a width of 320 pixels
+                        '-q:v', '5', // Adjust the quality level (lower number = higher quality)
+                        outputImageName
+                    );
                     const data = ffmpeg.FS('readFile', outputImageName);
 
                     // Create a Blob URL and display the thumbnail
