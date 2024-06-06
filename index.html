@@ -105,14 +105,19 @@
                 const canvas = document.createElement('canvas');
                 const ctx = canvas.getContext('2d');
 
-                videoElement.currentTime = 0; // Start from the beginning
+                // Wait for the video to be loaded
+                await new Promise(resolve => {
+                    videoElement.onloadeddata = resolve;
+                });
+
+                canvas.width = videoElement.videoWidth;
+                canvas.height = videoElement.videoHeight;
+
                 for (let i = 0; i < 10; i++) {
                     const timestamp = (duration / 10) * i;
                     videoElement.currentTime = timestamp;
                     await new Promise(resolve => {
                         videoElement.onseeked = async () => {
-                            canvas.width = videoElement.videoWidth;
-                            canvas.height = videoElement.videoHeight;
                             ctx.drawImage(videoElement, 0, 0, canvas.width, canvas.height, 0, 0, 40, 30); // Adjust dimensions for thumbnail size
                             const img = document.createElement('img');
                             img.src = canvas.toDataURL('image/jpeg');
