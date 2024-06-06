@@ -28,7 +28,7 @@
             margin-top: 20px;
         }
         .thumbnail img {
-            width: 100px;
+            width: 80px;
             height: auto;
         }
     </style>
@@ -149,8 +149,8 @@
                         '-i', originalFile.name,
                         '-ss', timestamp,
                         '-frames:v', '1',
-                        '-vf', 'scale=320:-1', // Resize the thumbnail to a width of 320 pixels
-                        '-q:v', '5', // Adjust the quality level (lower number = higher quality)
+                        '-vf', 'scale=160:-1', // Resize the thumbnail to a width of 160 pixels
+                        '-q:v', '10', // Adjust the quality level to 10 (lower quality, faster processing)
                         outputImageName
                     );
                     const data = ffmpeg.FS('readFile', outputImageName);
