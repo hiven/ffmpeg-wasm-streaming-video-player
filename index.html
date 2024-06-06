@@ -21,6 +21,17 @@
     #slider {
         width: 100%; /* Set the slider width to 100% of its parent container */
     }
+    .thumbnails {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 10px;
+    }
+    .thumbnail {
+        width: 30%;
+    }
+    .thumbnail img {
+        width: 100%;
+    }
 </style>
 </head>
 <body>
@@ -49,6 +60,7 @@
     <!-- Added video element to display output -->
 
     <p id="message"></p>
+    <div class="thumbnails" id="thumbnails"></div>
 </div>
 
 <script>
@@ -64,6 +76,7 @@
         const timeFields = document.getElementById('timeFields');
         const durationSpan = document.getElementById('duration');
         const slider = document.getElementById('slider');
+        const thumbnailsContainer = document.getElementById('thumbnails');
 
         uploader.addEventListener('change', handleFileChange);
 
@@ -83,6 +96,9 @@
                 durationSpan.textContent = video.duration.toFixed(2);
                 // Initialize slider after getting duration
                 initializeSlider(video.duration);
+
+                // Generate thumbnails
+                generateThumbnails(video.duration);
             };
         }
 
@@ -113,6 +129,41 @@
             });
         }
 
+        async function generateThumbnails(duration) {
+            if (!ffmpeg.isLoaded()) { // Check if ffmpeg.wasm is already loaded
+                await ffmpeg.load();
+            }
+
+            // Clear existing thumbnails
+            thumbnailsContainer.innerHTML = '';
+
+            const interval = duration / 15;
+            const thumbnailPromises = [];
+
+            for (let i = 0; i < 15; i++) {
+                const time = i * interval;
+                const outputName = `thumbnail-${i}.jpg`;
+
+                thumbnailPromises.push((async () => {
+                    await ffmpeg.run('-i', await fetchFile(originalFile), '-ss', time.toFixed(2), '-frames:v', '1', outputName);
+                    const data = ffmpeg.FS('readFile', outputName);
+                    const blob = new Blob([data.buffer], { type: 'image/jpeg' });
+                    const url = URL.createObjectURL(blob);
+
+                    // Create thumbnail element
+                    const img = document.createElement('img');
+                    img.src = url;
+                    img.alt = `Thumbnail at ${time.toFixed(2)} seconds`;
+                    const thumbnailDiv = document.createElement('div');
+                    thumbnailDiv.className = 'thumbnail';
+                    thumbnailDiv.appendChild(img);
+                    thumbnailsContainer.appendChild(thumbnailDiv);
+                })());
+            }
+
+            await Promise.all(thumbnailPromises);
+        }
+
         async function trimAndUpload() {
             const message = document.getElementById('message');
             const startTime = document.getElementById('start-time').value;
@@ -132,16 +183,6 @@
 
             // Reset file input value to trigger change event
             uploader.value = '';
-
-            // Commenting out form submission via AJAX
-            // Create a new FormData object and append the trimmed video file
-            // const formData = new FormData();
-            // formData.append...
-
-            // Submit the form with the trimmed video file
-            // const xhr = new XMLHttpRequest();
-            // xhr.open('POST', '/upload', true);
-            // xhr.send(formData);
 
             // Display trimmed video on the page
             videoElement.src = URL.createObjectURL(new Blob([data.buffer], { type: 'video/mp4' }));
