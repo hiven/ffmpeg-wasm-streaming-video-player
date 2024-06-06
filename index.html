@@ -3,7 +3,7 @@
 <head>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/noUiSlider/14.7.0/nouislider.min.js"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/noUiSlider/14.7.0/nouislider.min.css">
-    <script src="https://cdn.jsdelivr.net/npm/@ffmpeg/ffmpeg@0.11.2/dist/ffmpeg.min.js"></script> <!-- Update FFmpeg source -->
+    <script src="https://cdn.jsdelivr.net/npm/@ffmpeg/ffmpeg@0.11.2/dist/ffmpeg.min.js"></script>
     <link rel="stylesheet" href="css/style.css">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <style>
@@ -136,11 +136,11 @@
 
                 ffmpeg.FS('writeFile', originalFile.name, await fetchFile(originalFile));
 
-                // Calculate timestamps for 30 equally spaced frames
-                const frameInterval = duration / 30;
+                // Calculate timestamps for 10 equally spaced frames
+                const frameInterval = duration / 10;
                 thumbnailsContainer.innerHTML = ''; // Clear any existing thumbnails
 
-                for (let i = 0; i < 30; i++) {
+                for (let i = 0; i < 10; i++) {
                     const timestamp = (frameInterval * i).toFixed(2);
                     const outputImageName = `thumbnail${i}.jpg`;
 
@@ -149,8 +149,8 @@
                         '-i', originalFile.name,
                         '-ss', timestamp,
                         '-frames:v', '1',
-                        '-vf', 'scale=160:-1', // Resize the thumbnail to a width of 160 pixels
-                        '-q:v', '10', // Adjust the quality level to 10 (lower quality, faster processing)
+                        '-vf', 'scale=80:-1', // Resize the thumbnail to a width of 80 pixels
+                        '-q:v', '31', // Set the quality to the lowest (fastest processing)
                         outputImageName
                     );
                     const data = ffmpeg.FS('readFile', outputImageName);
