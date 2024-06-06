@@ -3,7 +3,6 @@
 <head>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/noUiSlider/14.7.0/nouislider.min.js"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/noUiSlider/14.7.0/nouislider.min.css">
-    <script src="https://cdn.jsdelivr.net/npm/@ffmpeg/ffmpeg@0.11.2/dist/ffmpeg.min.js"></script>
     <link rel="stylesheet" href="css/style.css">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <style>
@@ -27,9 +26,10 @@
             gap: 10px;
             margin-top: 20px;
         }
-        .thumbnail img {
+        .thumbnail canvas {
             width: 40px;
-            height: auto;
+            height: 30px; /* Adjust as needed */
+            border: 1px solid #ccc;
         }
     </style>
 </head>
@@ -62,19 +62,19 @@
 </div>
 
 <script>
-    const { createFFmpeg, fetchFile } = FFmpeg;
-    const ffmpeg = createFFmpeg({ log: true });
     let originalFile = null;
-    let sliderInstance = null;
+    let videoElement = null;
+    let thumbnailsContainer = null;
+    let message = null;
 
     document.addEventListener("DOMContentLoaded", function() {
         const uploader = document.getElementById('uploader');
-        const videoElement = document.getElementById('output-video');
+        videoElement = document.getElementById('output-video');
         const timeFields = document.getElementById('timeFields');
         const durationSpan = document.getElementById('duration');
         const slider = document.getElementById('slider');
-        const thumbnailsContainer = document.getElementById('thumbnails');
-        const message = document.getElementById('message');
+        thumbnailsContainer = document.getElementById('thumbnails');
+        message = document.getElementById('message');
 
         uploader.addEventListener('change', handleFileChange);
 
@@ -93,73 +93,34 @@
             video.onloadedmetadata = function() {
                 const duration = video.duration;
                 durationSpan.textContent = duration.toFixed(2);
-                // Initialize slider after getting duration
-                initializeSlider(duration);
                 generateThumbnails(duration); // Generate thumbnails immediately
             };
         }
 
-        function initializeSlider(duration) {
-            if (sliderInstance) {
-                sliderInstance.destroy();
-            }
-
-            sliderInstance = noUiSlider.create(slider, {
-                start: [0, duration],
-                connect: true,
-                step: 1,
-                range: {
-                    'min': 0,
-                    'max': duration
-                },
-                behaviour: 'drag-tap',
-                limit: 60,
-                margin: 10
-            });
-
-            sliderInstance.on('update', function(values, handle) {
-                if (handle === 0) {
-                    document.getElementById('start-time').value = values[handle];
-                } else {
-                    document.getElementById('end-time').value = values[handle];
-                }
-            });
-        }
-
         async function generateThumbnails(duration) {
             try {
-                if (!ffmpeg.isLoaded()) {
-                    message.innerHTML = 'Loading FFmpeg...';
-                    await ffmpeg.load();
-                }
                 message.innerHTML = 'Generating thumbnails...';
-
-                ffmpeg.FS('writeFile', originalFile.name, await fetchFile(originalFile));
-
-                // Calculate timestamps for 10 equally spaced frames
-                const frameInterval = duration / 10;
                 thumbnailsContainer.innerHTML = ''; // Clear any existing thumbnails
 
+                const canvas = document.createElement('canvas');
+                const ctx = canvas.getContext('2d');
+
+                videoElement.currentTime = 0; // Start from the beginning
                 for (let i = 0; i < 10; i++) {
-                    const timestamp = (frameInterval * i).toFixed(2);
-                    const outputImageName = `thumbnail${i}.jpg`;
-
-                    // Extract the frame at the specified timestamp and resize it
-                    await ffmpeg.run(
-                        '-i', originalFile.name,
-                        '-ss', timestamp,
-                        '-frames:v', '1',
-                        '-vf', 'scale=40:-1', // Resize the thumbnail to a width of 40 pixels
-                        '-q:v', '31', // Set the quality to the lowest (fastest processing)
-                        outputImageName
-                    );
-                    const data = ffmpeg.FS('readFile', outputImageName);
-
-                    // Create a Blob URL and display the thumbnail
-                    const img = document.createElement('img');
-                    img.src = URL.createObjectURL(new Blob([data.buffer], { type: 'image/jpeg' }));
-                    img.alt = `Thumbnail ${i + 1}`;
-                    thumbnailsContainer.appendChild(img);
+                    const timestamp = (duration / 10) * i;
+                    videoElement.currentTime = timestamp;
+                    await new Promise(resolve => {
+                        videoElement.onseeked = async () => {
+                            canvas.width = videoElement.videoWidth;
+                            canvas.height = videoElement.videoHeight;
+                            ctx.drawImage(videoElement, 0, 0, canvas.width, canvas.height, 0, 0, 40, 30); // Adjust dimensions for thumbnail size
+                            const img = document.createElement('img');
+                            img.src = canvas.toDataURL('image/jpeg');
+                            img.alt = `Thumbnail ${i + 1}`;
+                            thumbnailsContainer.appendChild(img);
+                            resolve();
+                        };
+                    });
                 }
                 message.innerHTML = 'Thumbnails generated successfully!';
             } catch (error) {
