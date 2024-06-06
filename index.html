@@ -69,7 +69,6 @@
 
     document.addEventListener("DOMContentLoaded", function() {
         const uploader = document.getElementById('uploader');
-        const submitButton = document.getElementById('submitButton');
         const videoElement = document.getElementById('output-video');
         const timeFields = document.getElementById('timeFields');
         const durationSpan = document.getElementById('duration');
@@ -92,9 +91,11 @@
             const video = document.createElement('video');
             video.src = URL.createObjectURL(originalFile);
             video.onloadedmetadata = function() {
-                durationSpan.textContent = video.duration.toFixed(2);
+                const duration = video.duration;
+                durationSpan.textContent = duration.toFixed(2);
                 // Initialize slider after getting duration
-                initializeSlider(video.duration);
+                initializeSlider(duration);
+                generateThumbnails(duration); // Generate thumbnails immediately
             };
         }
 
@@ -159,12 +160,6 @@
                 console.error(error);
             }
         }
-
-        submitButton.addEventListener('click', function(event) {
-            event.preventDefault(); // Prevent default form submission behavior
-            const endTime = parseFloat(document.getElementById('end-time').value);
-            generateThumbnails(endTime); // Generate thumbnails
-        });
     });
 </script>
 </body>
