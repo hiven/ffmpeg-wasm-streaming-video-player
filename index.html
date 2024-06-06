@@ -37,7 +37,7 @@
 <div class="container">
     <h3>Video Editor</h3>
     <div id="video-preview">
-        <video id="output-video" loop autoplay playsinline controls class="hidden"></video>
+        <video id="output-video" loop playsinline controls class="hidden"></video>
     </div>
     <div id="slider"></div><br/>
     <form action="/upload" method="post" enctype="multipart/form-data" id="uploadForm">
@@ -79,6 +79,7 @@
         uploader.addEventListener('change', handleFileChange);
 
         function handleFileChange() {
+            videoElement.pause(); // Pause the video
             videoElement.classList.remove('hidden');
             const files = uploader.files;
             originalFile = files[0];
@@ -127,6 +128,7 @@
                         };
                     });
                 }
+                videoElement.currentTime = 0; // Set video position to the start
                 message.innerHTML = 'Thumbnails generated successfully!';
             } catch (error) {
                 message.innerHTML = `Error: ${error.message}`;
