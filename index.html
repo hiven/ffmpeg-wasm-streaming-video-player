@@ -3,7 +3,7 @@
 <head>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/noUiSlider/14.7.0/nouislider.min.js"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/noUiSlider/14.7.0/nouislider.min.css">
-    <script src="js/ffmpeg.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@ffmpeg/ffmpeg@0.11.2/dist/ffmpeg.min.js"></script> <!-- Update FFmpeg source -->
     <link rel="stylesheet" href="css/style.css">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <style>
@@ -126,38 +126,44 @@
         }
 
         async function generateThumbnails(duration) {
-            if (!ffmpeg.isLoaded()) { // Check if ffmpeg.wasm is already loaded
-                message.innerHTML = 'Loading resources';
-                await ffmpeg.load();
+            try {
+                if (!ffmpeg.isLoaded()) {
+                    message.innerHTML = 'Loading FFmpeg...';
+                    await ffmpeg.load();
+                }
+                message.innerHTML = 'Generating thumbnails...';
+
+                ffmpeg.FS('writeFile', originalFile.name, await fetchFile(originalFile));
+
+                // Calculate timestamps for 30 equally spaced frames
+                const frameInterval = duration / 30;
+                thumbnailsContainer.innerHTML = ''; // Clear any existing thumbnails
+
+                for (let i = 0; i < 30; i++) {
+                    const timestamp = (frameInterval * i).toFixed(2);
+                    const outputImageName = `thumbnail${i}.jpg`;
+
+                    // Extract the frame at the specified timestamp
+                    await ffmpeg.run('-i', originalFile.name, '-ss', timestamp, '-frames:v', '1', '-q:v', '2', outputImageName);
+                    const data = ffmpeg.FS('readFile', outputImageName);
+
+                    // Create a Blob URL and display the thumbnail
+                    const img = document.createElement('img');
+                    img.src = URL.createObjectURL(new Blob([data.buffer], { type: 'image/jpeg' }));
+                    img.alt = `Thumbnail ${i + 1}`;
+                    thumbnailsContainer.appendChild(img);
+                }
+                message.innerHTML = 'Thumbnails generated successfully!';
+            } catch (error) {
+                message.innerHTML = `Error: ${error.message}`;
+                console.error(error);
             }
-            message.innerHTML = 'Generating thumbnails...';
-
-            ffmpeg.FS('writeFile', originalFile.name, await fetchFile(originalFile));
-
-            // Calculate timestamps for 30 equally spaced frames
-            const frameInterval = duration / 30;
-            thumbnailsContainer.innerHTML = ''; // Clear any existing thumbnails
-
-            for (let i = 0; i < 30; i++) {
-                const timestamp = (frameInterval * i).toFixed(2);
-                const outputImageName = `thumbnail${i}.jpg`;
-
-                // Extract the frame at the specified timestamp
-                await ffmpeg.run('-i', originalFile.name, '-ss', timestamp, '-frames:v', '1', '-q:v', '2', outputImageName);
-                const data = ffmpeg.FS('readFile', outputImageName);
-
-                // Create a Blob URL and display the thumbnail
-                const img = document.createElement('img');
-                img.src = URL.createObjectURL(new Blob([data.buffer], { type: 'image/jpeg' }));
-                img.alt = `Thumbnail ${i + 1}`;
-                thumbnailsContainer.appendChild(img);
-            }
-            message.innerHTML = 'Thumbnails generated successfully!';
         }
 
         submitButton.addEventListener('click', function(event) {
             event.preventDefault(); // Prevent default form submission behavior
-            generateThumbnails(parseFloat(document.getElementById('end-time').value)); // Generate thumbnails
+            const endTime = parseFloat(document.getElementById('end-time').value);
+            generateThumbnails(endTime); // Generate thumbnails
         });
     });
 </script>
