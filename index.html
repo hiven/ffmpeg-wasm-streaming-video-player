@@ -146,15 +146,15 @@
 
                     // Extract the frame at the specified timestamp with optimized options
                     await ffmpeg.run(
-                        '-skip_frame', 'nokey', 
-                        '-vsync', '2', 
-                        '-flags2', 'fast', 
-                        '-an', '-sn', '-dn', 
-                        '-i', originalFile.name, 
-                        '-vf', `fps=1/${frameInterval},scale=-1:30:flags=bilinear`, 
-                        '-qscale:v', '3', 
-                        '-frames:v', '1', 
-                        '-ss', timestamp, 
+                        '-skip_frame', frameInterval >= 2 ? 'nokey' : 'default',
+                        '-vsync', '2',
+                        '-flags2', 'fast',
+                        '-an', '-sn', '-dn',
+                        '-i', originalFile.name,
+                        '-vf', `fps=1/${frameInterval},scale=-1:30:flags=bilinear`,
+                        '-qscale:v', '3',
+                        '-frames:v', '1',
+                        '-ss', timestamp,
                         outputImageName
                     );
                     const data = ffmpeg.FS('readFile', outputImageName);
