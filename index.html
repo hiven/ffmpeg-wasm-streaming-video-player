@@ -74,6 +74,7 @@
                 };
             }
 
+
             async function generateThumbnails(duration) {
                 try {
                     if (!ffmpeg.isLoaded()) {
@@ -84,26 +85,35 @@
 
                     ffmpeg.FS('writeFile', originalFile.name, await fetchFile(originalFile));
 
-                    const args = [
-                        '-i', originalFile.name,
-                        '-vf', "fps=1/30,scale=320:-1,tile=5x6",
-                        '-frames:v', '30',
-                        'thumbnails_%03d.jpg'
-                    ];
+                    const frameCount = 30;
+                    const interval = duration / frameCount;
+                    thumbnailsContainer.innerHTML = '';
 
-                    await ffmpeg.run(...args);
+                    for (let i = 0; i < frameCount; i++) {
+                        const timestamp = (interval * (i + 1)).toFixed(2);
+                        const outputImageName = `thumbnail${i}.jpg`;
 
-                    const thumbnailFiles = await ffmpeg.FS('readdir', '/');
-                    thumbnailsContainer.innerHTML = ''; // Clear any existing thumbnails
+                        const args = [];
+                        args.push("-skip_frame", interval >= 2 ? "nokey" : "default");
+                        args.push("-vsync", "2");
+                        args.push("-flags2", "fast");
+                        args.push("-an"); // no audio
+                        args.push("-sn"); // no subtitles
+                        args.push("-dn"); // no data streams
+                        args.push("-i", originalFile.name);
+                        args.push("-vf", `select='eq(n\\,${i})',scale=640:360:flags=bilinear`);
+                        args.push("-q:v", "2");
+                        args.push("-frames:v", "1");
+                        args.push("-f", "image2");
+                        args.push(outputImageName);
 
-                    for (const file of thumbnailFiles) {
-                        if (file.name.startsWith('thumbnails_')) {
-                            const data = ffmpeg.FS('readFile', file.name);
-                            const img = document.createElement('img');
-                            img.src = URL.createObjectURL(new Blob([data.buffer], { type: 'image/jpeg' }));
-                            img.alt = 'Thumbnail';
-                            thumbnailsContainer.appendChild(img);
-                        }
+                        await ffmpeg.run(...args);
+                        const data = ffmpeg.FS('readFile', outputImageName);
+
+                        const img = document.createElement('img');
+                        img.src = URL.createObjectURL(new Blob([data.buffer], { type: 'image/jpeg' }));
+                        img.alt = `Thumbnail ${i + 1}`;
+                        thumbnailsContainer.appendChild(img);
                     }
                     message.innerHTML = 'Thumbnails generated successfully!';
                 } catch (error) {
