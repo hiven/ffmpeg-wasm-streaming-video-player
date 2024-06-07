@@ -102,11 +102,11 @@
 
                     // Calculate timestamps for 30 equally spaced frames
                     const frameCount = 30;
-                    const frameInterval = duration / frameCount;
+                    const interval = duration / frameCount;
                     thumbnailsContainer.innerHTML = ''; // Clear any existing thumbnails
 
                     for (let i = 0; i < frameCount; i++) {
-                        const timestamp = (frameInterval * i).toFixed(2);
+                        const timestamp = (interval * i).toFixed(2);
                         const outputImageName = `thumbnail${i}.jpg`;
 
                         // Mirror the flags and arguments used in the provided JavaScript function
