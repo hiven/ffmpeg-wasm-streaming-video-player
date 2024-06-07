@@ -102,7 +102,7 @@
 
                     // Calculate timestamps for 30 equally spaced frames
                     const frameCount = 30;
-                    const interval = duration / frameCount;
+                    const interval = duration / (frameCount - 1); // Adjusted for 29 intervals between 30 frames
                     thumbnailsContainer.innerHTML = ''; // Clear any existing thumbnails
 
                     for (let i = 0; i < frameCount; i++) {
