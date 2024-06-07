@@ -126,49 +126,53 @@
             });
         }
 
-        async function generateThumbnails(duration) {
-            try {
-                if (!ffmpeg.isLoaded()) {
-                    message.innerHTML = 'Loading FFmpeg...';
-                    await ffmpeg.load();
-                }
-                message.innerHTML = 'Generating thumbnails...';
-
-                ffmpeg.FS('writeFile', originalFile.name, await fetchFile(originalFile));
-
-                // Calculate timestamps for 30 equally spaced frames
-                const frameInterval = duration / 30;
-                thumbnailsContainer.innerHTML = ''; // Clear any existing thumbnails
-
-                for (let i = 0; i < 30; i++) {
-                    const timestamp = (frameInterval * i).toFixed(2);
-                    const outputImageName = `thumbnail${i}.jpg`;
-
-                    // Extract the frame at the specified timestamp with optimized options
-                    await ffmpeg.run(
-                        '-skip_frame', frameInterval >= 2 ? 'nokey' : 'default',
-                        '-vsync', '2',
-                        '-flags2', 'fast',
-                        '-an', '-sn', '-dn',
-                        '-i', originalFile.name,
-                        '-vf', `fps=1/${frameInterval},scale=-1:30:flags=bilinear`,
-                        '-f', 'image2',
-                        outputImageName
-                    );
-                    const data = ffmpeg.FS('readFile', outputImageName);
-
-                    // Create a Blob URL and display the thumbnail
-                    const img = document.createElement('img');
-                    img.src = URL.createObjectURL(new Blob([data.buffer], { type: 'image/jpeg' }));
-                    img.alt = `Thumbnail ${i + 1}`;
-                    thumbnailsContainer.appendChild(img);
-                }
-                message.innerHTML = 'Thumbnails generated successfully!';
-            } catch (error) {
-                message.innerHTML = `Error: ${error.message}`;
-                console.error(error);
-            }
+async function generateThumbnails(duration) {
+    try {
+        if (!ffmpeg.isLoaded()) {
+            message.innerHTML = 'Loading FFmpeg...';
+            await ffmpeg.load();
         }
+        message.innerHTML = 'Generating thumbnails...';
+
+        ffmpeg.FS('writeFile', originalFile.name, await fetchFile(originalFile));
+
+        // Calculate the frame interval based on the desired number of thumbnails
+        const numThumbnails = 30; // Adjust as needed
+        const frameInterval = duration / numThumbnails;
+
+        thumbnailsContainer.innerHTML = ''; // Clear any existing thumbnails
+
+        // Use the frame interval to generate thumbnails
+        for (let i = 0; i < numThumbnails; i++) {
+            const timestamp = (frameInterval * i).toFixed(2);
+            const outputImageName = `thumbnail${i}.jpg`;
+
+            // Extract the frame at the specified timestamp with optimized options
+            await ffmpeg.run(
+                '-skip_frame', frameInterval >= 2 ? 'nokey' : 'default',
+                '-vsync', '2',
+                '-flags2', 'fast',
+                '-an', '-sn', '-dn',
+                '-i', originalFile.name,
+                '-vf', `fps=1/${frameInterval},scale=-1:30:flags=bilinear`,
+                '-f', 'image2',
+                outputImageName
+            );
+            const data = ffmpeg.FS('readFile', outputImageName);
+
+            // Create a Blob URL and display the thumbnail
+            const img = document.createElement('img');
+            img.src = URL.createObjectURL(new Blob([data.buffer], { type: 'image/jpeg' }));
+            img.alt = `Thumbnail ${i + 1}`;
+            thumbnailsContainer.appendChild(img);
+        }
+        message.innerHTML = 'Thumbnails generated successfully!';
+    } catch (error) {
+        message.innerHTML = `Error: ${error.message}`;
+        console.error(error);
+    }
+}
+
     });
 </script>
 </body>
