@@ -3,7 +3,7 @@
 <head>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/noUiSlider/14.7.0/nouislider.min.js"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/noUiSlider/14.7.0/nouislider.min.css">
-    <script src="https://cdn.jsdelivr.net/npm/@ffmpeg/ffmpeg@0.11.2/dist/ffmpeg.min.js"></script> <!-- Update FFmpeg source -->
+    <script src="https://cdn.jsdelivr.net/npm/@ffmpeg/ffmpeg@0.11.2/dist/ffmpeg.min.js"></script>
     <link rel="stylesheet" href="css/style.css">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <style>
@@ -28,8 +28,8 @@
             margin-top: 20px;
         }
         .thumbnail img {
-            width: 100px;
-            height: auto;
+            width: auto;
+            height: 30px;
         }
     </style>
 </head>
@@ -126,7 +126,7 @@
             });
         }
 
-     async function generateThumbnails(duration) {
+async function generateThumbnails(duration) {
     try {
         if (!ffmpeg.isLoaded()) {
             message.innerHTML = 'Loading FFmpeg...';
@@ -137,11 +137,16 @@
         ffmpeg.FS('writeFile', originalFile.name, await fetchFile(originalFile));
 
         const numThumbnails = 30;
+        const frameInterval = duration / numThumbnails;
+        console.log('frameInterval:', frameInterval);
+
+        thumbnailsContainer.innerHTML = ''; // Clear any existing thumbnails
+
         const ffmpegArgs = [
             '-i', originalFile.name,
             '-vf', `fps=${numThumbnails / duration},scale=640:360:flags=bilinear`,
             '-vsync', 'vfr',
-            '-skip_frame', 'nokey',
+            '-skip_frame', frameInterval >= 2 ? 'nokey' : 'default',
             '-flags2', 'fast',
             '-an', // no audio
             '-sn', // no subtitles
@@ -152,8 +157,6 @@
         console.log('Running FFmpeg with arguments:', ffmpegArgs);
 
         await ffmpeg.run(...ffmpegArgs);
-
-        thumbnailsContainer.innerHTML = ''; // Clear any existing thumbnails
 
         for (let i = 0; i < numThumbnails; i++) {
             const outputImageName = `thumbnail${(i + 1).toString().padStart(3, '0')}.jpg`;
