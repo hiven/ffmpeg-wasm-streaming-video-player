@@ -82,17 +82,21 @@
                 // Display thumbnails
                 thumbnailsContainer.innerHTML = '';
                 for (let i = 1; i <= 30; i++) {
-                    const thumbnailPath = `output${i}.png`;
-                    const thumbnailBlob = ffmpeg.FS('readFile', thumbnailPath);
-                    const thumbnailURL = URL.createObjectURL(new Blob([thumbnailBlob], { type: 'image/png' }));
-                    
-                    const thumbnailImg = document.createElement('img');
-                    thumbnailImg.src = thumbnailURL;
-                    thumbnailImg.alt = `Thumbnail ${i}`;
-                    const thumbnailDiv = document.createElement('div');
-                    thumbnailDiv.className = 'thumbnail';
-                    thumbnailDiv.appendChild(thumbnailImg);
-                    thumbnailsContainer.appendChild(thumbnailDiv);
+                    try {
+                        const thumbnailPath = `output${i}.png`;
+                        const thumbnailBlob = ffmpeg.FS('readFile', thumbnailPath);
+                        const thumbnailURL = URL.createObjectURL(new Blob([thumbnailBlob], { type: 'image/png' }));
+
+                        const thumbnailImg = document.createElement('img');
+                        thumbnailImg.src = thumbnailURL;
+                        thumbnailImg.alt = `Thumbnail ${i}`;
+                        const thumbnailDiv = document.createElement('div');
+                        thumbnailDiv.className = 'thumbnail';
+                        thumbnailDiv.appendChild(thumbnailImg);
+                        thumbnailsContainer.appendChild(thumbnailDiv);
+                    } catch (error) {
+                        console.error(`Error reading thumbnail ${i}:`, error);
+                    }
                 }
             }
 
