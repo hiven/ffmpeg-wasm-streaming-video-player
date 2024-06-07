@@ -118,9 +118,9 @@
                         args.push("-sn"); // no subtitles
                         args.push("-dn"); // no data streams
                         args.push("-i", originalFile.name);
-                        args.push("-vf", `select='eq(n\\,${i})',scale=640:360:flags=bilinear`);
-                        args.push("-q:v", "2");
-                        args.push("-frames:v", "1");
+                        args.push("-vf", `fps=1/${interval},scale=${width}:${height}:flags=bilinear`);
+                        //args.push("-q:v", "2");
+                        //args.push("-frames:v", "1");
                         args.push("-f", "image2");
                         args.push(outputImageName);
 
