@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <script src="https://cdn.jsdelivr.net/npm/@ffmpeg/ffmpeg@0.11.2/dist/ffmpeg.min.js"></script> <!-- Update FFmpeg source -->
+    <script src="https://cdn.jsdelivr.net/npm/@ffmpeg/ffmpeg@0.11.2/dist/ffmpeg.min.js"></script>
     <link rel="stylesheet" href="css/style.css">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <style>
@@ -66,8 +66,6 @@
                 originalFile = files[0];
                 videoElement.src = URL.createObjectURL(originalFile);
 
-
-                // Get the duration of the video file
                 const video = document.createElement('video');
                 video.src = URL.createObjectURL(originalFile);
                 video.onloadedmetadata = async function() {
@@ -87,16 +85,14 @@
 
                     ffmpeg.FS('writeFile', originalFile.name, await fetchFile(originalFile));
 
-                    // Calculate timestamps for 30 equally spaced frames
                     const frameCount = 30;
                     const interval = duration / frameCount;
-                    thumbnailsContainer.innerHTML = ''; // Clear any existing thumbnails
+                    thumbnailsContainer.innerHTML = '';
 
                     for (let i = 0; i < frameCount; i++) {
-                        const timestamp = (interval * i).toFixed(2);
+                        const timestamp = (interval * (i + 1)).toFixed(2);
                         const outputImageName = `thumbnail${i}.jpg`;
 
-                        // Mirror the flags and arguments used in the provided JavaScript function
                         const args = [];
                         args.push("-skip_frame", interval >= 2 ? "nokey" : "default");
                         args.push("-vsync", "2");
@@ -114,7 +110,6 @@
                         await ffmpeg.run(...args);
                         const data = ffmpeg.FS('readFile', outputImageName);
 
-                        // Create a Blob URL and display the thumbnail
                         const img = document.createElement('img');
                         img.src = URL.createObjectURL(new Blob([data.buffer], { type: 'image/jpeg' }));
                         img.alt = `Thumbnail ${i + 1}`;
