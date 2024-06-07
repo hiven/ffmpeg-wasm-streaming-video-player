@@ -157,7 +157,7 @@ async function generateThumbnails(duration) {
                 '-flags2', 'fast',
                 '-an', '-sn', '-dn',
                 '-i', originalFile.name,
-                '-vf', `fps=1/60,`,
+                '-vf', `fps=1/${interval}`,
                 '-f', 'image2',
                 outputImageName
             );
