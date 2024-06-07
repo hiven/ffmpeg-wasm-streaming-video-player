@@ -143,11 +143,11 @@
                 thumbnailsContainer.innerHTML = ''; // Clear any existing thumbnails
 
                 // Generate the thumbnails using the fps filter
-               await ffmpeg.run(
+                await ffmpeg.run(
                     '-i', originalFile.name,
                     '-vf', `fps=${numThumbnails / duration}`,
-                    '-skip_frame', frameInterval >= 2 ? 'nokey' : 'default',
                     '-vsync', '2',
+                    '-skip_frame', frameInterval >= 2 ? 'nokey' : 'default',
                     '-flags2', 'fast',
                     '-an', // no audio
                     '-sn', // no subtitles
