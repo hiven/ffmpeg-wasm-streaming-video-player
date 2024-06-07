@@ -1,59 +1,15 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/noUiSlider/14.7.0/nouislider.min.js"></script>
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/noUiSlider/14.7.0/nouislider.min.css">
     <script src="https://cdn.jsdelivr.net/npm/@ffmpeg/ffmpeg@0.11.2/dist/ffmpeg.min.js"></script>
-    <link rel="stylesheet" href="css/style.css">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <style>
-        .container {
-            width: 500px;
-            margin: 0 auto; /* Center the container horizontally */
-        }
-        #video-controls {
-            display: flex;
-            flex-direction: column;
-        }
-        #output-video {
-            width: 100%; /* Set the video width to 100% of its parent container */
-        }
-        #slider {
-            width: 100%; /* Set the slider width to 100% of its parent container */
-        }
-        .thumbnails {
-            display: flex;
-            flex-wrap: wrap;
-            gap: 10px;
-            margin-top: 20px;
-        }
-        .thumbnail img {
-            width: auto;
-            height: 30px;
-        }
-    </style>
 </head>
 <body>
 <div class="container">
-    <h3>Video Editor</h3>
-    <div id="video-preview">
-        <video id="output-video" loop autoplay playsinline controls class="hidden"></video>
-    </div>
-    <div id="slider"></div><br/>
+    <h3>Thumbnail Generator</h3>
     <form action="/upload" method="post" enctype="multipart/form-data" id="uploadForm">
-        <div style="margin-bottom: 10px;">
-            <label for="uploader">Upload Video:</label><br>
-            <input type="file" name="videoFile" id="uploader">
-        </div>
-        <div id="timeFields" style="margin-bottom: 10px; display: none;">
-            <label for="start-time">Start Time (in seconds):</label><br>
-            <input type="number" id="start-time" value="0"><br>
-            <label for="end-time">End Time (in seconds):</label><br>
-            <input type="number" id="end-time" value="1"><br>
-            <label for="duration">Duration (in seconds):</label><br>
-            <span id="duration"></span><br>
-        </div>
-        <button type="submit" id="submitButton">Submit</button>
+        <label for="uploader">Upload Video:</label><br>
+        <input type="file" name="videoFile" id="uploader">
+        <button type="submit" id="submitButton">Generate Thumbnails</button>
     </form>
 
     <div class="thumbnails" id="thumbnails"></div>
@@ -64,121 +20,62 @@
 <script>
     const { createFFmpeg, fetchFile } = FFmpeg;
     const ffmpeg = createFFmpeg({ log: true });
-    let originalFile = null;
-    let sliderInstance = null;
 
-    document.addEventListener("DOMContentLoaded", function() {
+    document.addEventListener("DOMContentLoaded", async function() {
         const uploader = document.getElementById('uploader');
-        const videoElement = document.getElementById('output-video');
-        const timeFields = document.getElementById('timeFields');
-        const durationSpan = document.getElementById('duration');
-        const slider = document.getElementById('slider');
         const thumbnailsContainer = document.getElementById('thumbnails');
         const message = document.getElementById('message');
 
-        uploader.addEventListener('change', handleFileChange);
-
-        function handleFileChange() {
-            videoElement.classList.remove('hidden');
+        uploader.addEventListener('change', async function() {
             const files = uploader.files;
-            originalFile = files[0];
-            videoElement.src = URL.createObjectURL(originalFile);
-
-            // Show the time fields once a video is uploaded
-            timeFields.style.display = 'block';
-
-            // Get the duration of the video file
-            const video = document.createElement('video');
-            video.src = URL.createObjectURL(originalFile);
-            video.onloadedmetadata = function() {
-                const duration = video.duration;
-                durationSpan.textContent = duration.toFixed(2);
-                // Initialize slider after getting duration
-                initializeSlider(duration);
-                generateThumbnails(duration); // Generate thumbnails immediately
-            };
-        }
-
-        function initializeSlider(duration) {
-            if (sliderInstance) {
-                sliderInstance.destroy();
-            }
-
-            sliderInstance = noUiSlider.create(slider, {
-                start: [0, duration],
-                connect: true,
-                step: 1,
-                range: {
-                    'min': 0,
-                    'max': duration
-                },
-                behaviour: 'drag-tap',
-                limit: 60,
-                margin: 10
-            });
-
-            sliderInstance.on('update', function(values, handle) {
-                if (handle === 0) {
-                    document.getElementById('start-time').value = values[handle];
-                } else {
-                    document.getElementById('end-time').value = values[handle];
-                }
-            });
-        }
-
-async function generateThumbnails(duration) {
-    try {
-        if (!ffmpeg.isLoaded()) {
-            message.innerHTML = 'Loading FFmpeg...';
-            await ffmpeg.load();
-        }
-        message.innerHTML = 'Generating thumbnails...';
-
-        ffmpeg.FS('writeFile', originalFile.name, await fetchFile(originalFile));
-
-        const numThumbnails = 30;
-        const frameInterval = duration / numThumbnails;
-        console.log('frameInterval:', frameInterval);
-
-        thumbnailsContainer.innerHTML = ''; // Clear any existing thumbnails
-
-        const ffmpegArgs = [
-            '-i', originalFile.name,
-            '-vf', `fps=${numThumbnails / duration},scale=640:360:flags=bilinear`,
-            '-vsync', 'vfr',
-            '-skip_frame', frameInterval >= 2 ? 'nokey' : 'default',
-            '-flags2', 'fast',
-            '-an', // no audio
-            '-sn', // no subtitles
-            '-dn', // no data streams
-            'thumbnail%03d.jpg'
-        ];
-
-        console.log('Running FFmpeg with arguments:', ffmpegArgs);
-
-        await ffmpeg.run(...ffmpegArgs);
-
-        for (let i = 0; i < numThumbnails; i++) {
-            const outputImageName = `thumbnail${(i + 1).toString().padStart(3, '0')}.jpg`;
+            const originalFile = files[0];
+            
             try {
-                const data = ffmpeg.FS('readFile', outputImageName);
+                if (!ffmpeg.isLoaded()) {
+                    message.innerHTML = 'Loading FFmpeg...';
+                    await ffmpeg.load();
+                }
+                message.innerHTML = 'Generating thumbnails...';
 
-                // Create a Blob URL and display the thumbnail
-                const img = document.createElement('img');
-                img.src = URL.createObjectURL(new Blob([data.buffer], { type: 'image/jpeg' }));
-                img.alt = `Thumbnail ${i + 1}`;
-                thumbnailsContainer.appendChild(img);
-            } catch (e) {
-                console.error(`Error reading file ${outputImageName}:`, e);
+                ffmpeg.FS('writeFile', originalFile.name, await fetchFile(originalFile));
+
+                const numThumbnails = 30;
+                const videoInfo = await ffmpeg.probe(originalFile.name);
+                const duration = videoInfo.format.duration;
+
+                const frameInterval = duration / numThumbnails;
+                console.log('Frame Interval:', frameInterval);
+
+                thumbnailsContainer.innerHTML = ''; // Clear any existing thumbnails
+
+                for (let i = 0; i < numThumbnails; i++) {
+                    const outputImageName = `thumbnail${(i + 1).toString().padStart(3, '0')}.jpg`;
+
+                    await ffmpeg.run(
+                        '-i', originalFile.name,
+                        '-vf', `fps=1/${frameInterval},scale=160:90:flags=bilinear`,
+                        '-vframes', '1',
+                        '-an', // no audio
+                        '-sn', // no subtitles
+                        '-dn', // no data streams
+                        outputImageName
+                    );
+
+                    const data = ffmpeg.FS('readFile', outputImageName);
+
+                    // Create a Blob URL and display the thumbnail
+                    const img = document.createElement('img');
+                    img.src = URL.createObjectURL(new Blob([data.buffer], { type: 'image/jpeg' }));
+                    img.alt = `Thumbnail ${i + 1}`;
+                    thumbnailsContainer.appendChild(img);
+                }
+
+                message.innerHTML = 'Thumbnails generated successfully!';
+            } catch (error) {
+                message.innerHTML = `Error: ${error.message}`;
+                console.error('Error during thumbnail generation:', error);
             }
-        }
-        message.innerHTML = 'Thumbnails generated successfully!';
-    } catch (error) {
-        message.innerHTML = `Error: ${error.message}`;
-        console.error('Error during thumbnail generation:', error);
-    }
-}
-
+        });
     });
 </script>
 </body>
