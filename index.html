@@ -156,6 +156,7 @@ async function generateThumbnails(duration) {
                 '-i', originalFile.name,
                 '-vf', `fps=1/${frameInterval},scale=-1:30:flags=bilinear`,
                 '-f', 'image2',
+                '-ss', timestamp, // Set the timestamp for the frame extraction
                 outputImageName
             );
             const data = ffmpeg.FS('readFile', outputImageName);
@@ -172,6 +173,7 @@ async function generateThumbnails(duration) {
         console.error(error);
     }
 }
+
 
     });
 </script>
