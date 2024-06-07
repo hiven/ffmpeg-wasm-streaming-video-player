@@ -1,25 +1,22 @@
 <!DOCTYPE html>
-<html lang="en">
+<html>
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Thumbnail Generator</title>
     <script src="https://cdn.jsdelivr.net/npm/@ffmpeg/ffmpeg@0.11.2/dist/ffmpeg.min.js"></script>
+    <link rel="stylesheet" href="css/style.css">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <style>
-        body {
-            font-family: Arial, sans-serif;
-            margin: 0;
-            padding: 0;
-        }
         .container {
-            max-width: 800px;
-            margin: 20px auto;
-            padding: 20px;
-            border: 1px solid #ccc;
-            border-radius: 5px;
-            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+            width: 500px;
+            margin: 0 auto; /* Center the container horizontally */
         }
-        #thumbnails {
+        #video-controls {
+            display: flex;
+            flex-direction: column;
+        }
+        #output-video {
+            width: 100%; /* Set the video width to 100% of its parent container */
+        }
+        .thumbnails {
             display: flex;
             flex-wrap: wrap;
             gap: 10px;
@@ -28,80 +25,101 @@
         .thumbnail img {
             width: 100px;
             height: auto;
-            border: 1px solid #ddd;
-            border-radius: 5px;
         }
     </style>
 </head>
 <body>
     <div class="container">
-        <h1>Thumbnail Generator</h1>
-        <form id="videoForm" enctype="multipart/form-data">
-            <input type="file" id="videoFile" accept="video/*" required>
-            <button type="submit">Generate Thumbnails</button>
+        <h3>Video Editor</h3>
+        <div id="video-preview">
+            <video id="output-video" loop autoplay playsinline controls class="hidden"></video>
+        </div>
+        <form action="/upload" method="post" enctype="multipart/form-data" id="uploadForm">
+            <div style="margin-bottom: 10px;">
+                <label for="uploader">Upload Video:</label><br>
+                <input type="file" name="videoFile" id="uploader">
+            </div>
+              <button type="submit" id="submitButton">Submit</button>
         </form>
-        <div id="thumbnails"></div>
+
+        <div class="thumbnails" id="thumbnails"></div>
+        
+        <p id="message"></p>
     </div>
 
     <script>
         const { createFFmpeg, fetchFile } = FFmpeg;
         const ffmpeg = createFFmpeg({ log: true });
+        let originalFile = null;
 
-        document.addEventListener('DOMContentLoaded', async () => {
-            const videoForm = document.getElementById('videoForm');
-            const videoFileInput = document.getElementById('videoFile');
+        document.addEventListener("DOMContentLoaded", function() {
+            const uploader = document.getElementById('uploader');
+            const videoElement = document.getElementById('output-video');
             const thumbnailsContainer = document.getElementById('thumbnails');
+            const message = document.getElementById('message');
 
-            videoForm.addEventListener('submit', async (event) => {
-                event.preventDefault();
+            uploader.addEventListener('change', handleFileChange);
 
-                const videoFile = videoFileInput.files[0];
-                if (!videoFile) return;
+            async function handleFileChange() {
+                videoElement.classList.remove('hidden');
+                const files = uploader.files;
+                originalFile = files[0];
+                videoElement.src = URL.createObjectURL(originalFile);
 
-                // Load FFmpeg if not already loaded
-                if (!ffmpeg.isLoaded()) {
-                    await ffmpeg.load();
-                }
-
-                // Generate thumbnails
-                await generateThumbnails(videoFile);
-            });
-
-            async function generateThumbnails(videoFile) {
-                const interval = calculateInterval(videoFile.duration);
-                const args = [
-                    '-i', 'input.mp4',
-                    '-vf', `fps=1/${interval},scale=100:100`,
-                    '-f', 'image2',
-                    'output%d.png'
-                ];
-
-                ffmpeg.FS('writeFile', 'input.mp4', await fetchFile(videoFile));
-                await ffmpeg.run(...args);
-
-                // Display thumbnails
-                thumbnailsContainer.innerHTML = '';
-                for (let i = 1; i <= 30; i++) {
-                    try {
-                        const thumbnailPath = `output${i}.png`;
-                        const thumbnailBlob = ffmpeg.FS('readFile', thumbnailPath);
-                        const thumbnailURL = URL.createObjectURL(new Blob([thumbnailBlob], { type: 'image/png' }));
-
-                        const thumbnailImg = document.createElement('img');
-                        thumbnailImg.src = thumbnailURL;
-                        thumbnailImg.alt = `Thumbnail ${i}`;
-                        const thumbnailDiv = document.createElement('div');
-                        thumbnailDiv.className = 'thumbnail';
-                        thumbnailDiv.appendChild(thumbnailImg);
-                        thumbnailsContainer.appendChild(thumbnailDiv);
-                    } catch (error) {
-                        console.error(`Error reading thumbnail ${i}:`, error);
-                    }
-                }
+                const video = document.createElement('video');
+                video.src = URL.createObjectURL(originalFile);
+                video.onloadedmetadata = async function() {
+                    const duration = video.duration;
+                    await generateThumbnails(duration);
+                };
             }
 
-            function calculateInterval(videoDuration) {
-                return Math.ceil(videoDuration / 30);
+
+            async function generateThumbnails(duration) {
+                try {
+                    if (!ffmpeg.isLoaded()) {
+                        message.innerHTML = 'Loading FFmpeg...';
+                        await ffmpeg.load();
+                    }
+                    message.innerHTML = 'Generating thumbnails...';
+
+                    ffmpeg.FS('writeFile', originalFile.name, await fetchFile(originalFile));
+
+                    const frameCount = 30;
+                    const interval = duration / frameCount;
+                    thumbnailsContainer.innerHTML = '';
+
+                    for (let i = 0; i < frameCount; i++) {
+                        const timestamp = (interval * (i + 1)).toFixed(2);
+                        const outputImageName = `thumbnail${i}.jpg`;
+
+                        const args = [];
+                        args.push("-skip_frame", interval >= 2 ? "nokey" : "default");
+                        args.push("-vsync", "2");
+                        args.push("-flags2", "fast");
+                        args.push("-an"); // no audio
+                        args.push("-sn"); // no subtitles
+                        args.push("-dn"); // no data streams
+                        args.push("-i", originalFile.name);
+                        args.push("-vf", `fps=1/${interval};
+                        args.push("-q:v", "2");
+                        args.push("-frames:v", "1");
+                        args.push("-f", "image2");
+                        args.push(outputImageName);
+
+                        await ffmpeg.run(...args);
+                        const data = ffmpeg.FS('readFile', outputImageName);
+
+                        const img = document.createElement('img');
+                        img.src = URL.createObjectURL(new Blob([data.buffer], { type: 'image/jpeg' }));
+                        img.alt = `Thumbnail ${i + 1}`;
+                        thumbnailsContainer.appendChild(img);
+                    }
+                    message.innerHTML = 'Thumbnails generated successfully!';
+                } catch (error) {
+                    message.innerHTML = `Error: ${error.message}`;
+                    console.error(error);
+                }
             }
         });
     </script>
