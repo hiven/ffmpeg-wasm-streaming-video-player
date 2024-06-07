@@ -45,6 +45,8 @@
         <div class="thumbnails" id="thumbnails"></div>
         
         <p id="message"></p>
+        <!-- Added div to display console logs -->
+        <div id="console-log"></div>
     </div>
 
     <script>
@@ -74,55 +76,59 @@
                 };
             }
 
+            async function generateThumbnails(duration) {
+                try {
+                    logToHTML(`Duration: ${duration}`); // Print the duration
+                    if (!ffmpeg.isLoaded()) {
+                        message.innerHTML = 'Loading FFmpeg...';
+                        await ffmpeg.load();
+                    }
+                    message.innerHTML = 'Generating thumbnails...';
 
-async function generateThumbnails(duration) {
-    try {
-        console.log("Duration:", duration); // Print the duration
-        if (!ffmpeg.isLoaded()) {
-            message.innerHTML = 'Loading FFmpeg...';
-            await ffmpeg.load();
-        }
-        message.innerHTML = 'Generating thumbnails...';
+                    ffmpeg.FS('writeFile', originalFile.name, await fetchFile(originalFile));
 
-        ffmpeg.FS('writeFile', originalFile.name, await fetchFile(originalFile));
+                    const frameCount = 30;
+                    const interval = duration / frameCount;
+                    logToHTML(`Interval: ${interval}`); // Print the interval
+                    thumbnailsContainer.innerHTML = '';
 
-        const frameCount = 30;
-        const interval = duration / frameCount;
-        console.log("Interval:", interval); // Print the interval
-        thumbnailsContainer.innerHTML = '';
+                    for (let i = 0; i < frameCount; i++) {
+                        const outputImageName = `thumbnail${i}.jpg`;
 
-        for (let i = 0; i < frameCount; i++) {
-            const outputImageName = `thumbnail${i}.jpg`;
+                        const args = [];
+                        args.push("-skip_frame", interval >= 2 ? "nokey" : "default");
+                        args.push("-vsync", "2");
+                        args.push("-flags2", "fast");
+                        args.push("-an"); // no audio
+                        args.push("-sn"); // no subtitles
+                        args.push("-dn"); // no data streams
+                        args.push("-i", originalFile.name);
+                        args.push("-vf", `fps=1/${interval}`);
+                        args.push("-q:v", "2");
+                        args.push("-frames:v", "1");
+                        args.push("-f", "image2");
+                        args.push(outputImageName);
 
-            const args = [];
-            args.push("-skip_frame", interval >= 2 ? "nokey" : "default");
-            args.push("-vsync", "2");
-            args.push("-flags2", "fast");
-            args.push("-an"); // no audio
-            args.push("-sn"); // no subtitles
-            args.push("-dn"); // no data streams
-            args.push("-i", originalFile.name);
-            args.push("-vf", `fps=1/${interval}`);
-            args.push("-q:v", "2");
-            args.push("-frames:v", "1");
-            args.push("-f", "image2");
-            args.push(outputImageName);
+                        await ffmpeg.run(...args);
+                        const data = ffmpeg.FS('readFile', outputImageName);
 
-            await ffmpeg.run(...args);
-            const data = ffmpeg.FS('readFile', outputImageName);
+                        const img = document.createElement('img');
+                        img.src = URL.createObjectURL(new Blob([data.buffer], { type: 'image/jpeg' }));
+                        img.alt = `Thumbnail ${i + 1}`;
+                        thumbnailsContainer.appendChild(img);
+                    }
+                    message.innerHTML = 'Thumbnails generated successfully!';
+                } catch (error) {
+                    message.innerHTML = `Error: ${error.message}`;
+                    console.error(error);
+                }
+            }
 
-            const img = document.createElement('img');
-            img.src = URL.createObjectURL(new Blob([data.buffer], { type: 'image/jpeg' }));
-            img.alt = `Thumbnail ${i + 1}`;
-            thumbnailsContainer.appendChild(img);
-        }
-        message.innerHTML = 'Thumbnails generated successfully!';
-    } catch (error) {
-        message.innerHTML = `Error: ${error.message}`;
-        console.error(error);
-    }
-}
-
+            // Function to print logs to HTML
+            function logToHTML(message) {
+                const logDiv = document.getElementById('console-log');
+                logDiv.innerHTML += `<p>${message}</p>`;
+            }
         });
     </script>
 </body>
