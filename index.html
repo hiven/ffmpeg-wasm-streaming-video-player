@@ -75,52 +75,62 @@
             }
 
 
-            async function generateThumbnails(duration) {
-                try {
-                    if (!ffmpeg.isLoaded()) {
-                        message.innerHTML = 'Loading FFmpeg...';
-                        await ffmpeg.load();
-                    }
-                    message.innerHTML = 'Generating thumbnails...';
+ async function generateThumbnails(duration) {
+    try {
+        if (!ffmpeg.isLoaded()) {
+            message.innerHTML = 'Loading FFmpeg...';
+            await ffmpeg.load();
+        }
+        message.innerHTML = 'Generating thumbnails...';
 
-                    ffmpeg.FS('writeFile', originalFile.name, await fetchFile(originalFile));
+        ffmpeg.FS('writeFile', originalFile.name, await fetchFile(originalFile));
 
-                    const frameCount = 30;
-                    const interval = duration / frameCount;
-                    thumbnailsContainer.innerHTML = '';
+        // Get the video's frame rate
+        const videoInfo = await ffmpeg.run("-i", originalFile.name);
+        const frameRateMatch = videoInfo.stderr.match(/(\d+(?:\.\d+)?) fps/);
+        const frameRate = frameRateMatch ? parseFloat(frameRateMatch[1]) : 30; // Default to 30 fps if frame rate is not found
 
-                    for (let i = 0; i < frameCount; i++) {
-                        const timestamp = (interval * (i + 1)).toFixed(2);
-                        const outputImageName = `thumbnail${i}.jpg`;
+        // Calculate the total number of frames in the video
+        const totalFrames = Math.floor(duration * frameRate);
 
-                        const args = [];
-                        args.push("-skip_frame", interval >= 2 ? "nokey" : "default");
-                        args.push("-vsync", "2");
-                        args.push("-flags2", "fast");
-                        args.push("-an"); // no audio
-                        args.push("-sn"); // no subtitles
-                        args.push("-dn"); // no data streams
-                        args.push("-i", originalFile.name);
-                        args.push("-vf", `select='eq(n\\,${i})',scale=640:360:flags=bilinear`);
-                        args.push("-q:v", "2");
-                        args.push("-frames:v", "1");
-                        args.push("-f", "image2");
-                        args.push(outputImageName);
+        // Calculate the interval between frames
+        const interval = Math.floor(totalFrames / 30);
 
-                        await ffmpeg.run(...args);
-                        const data = ffmpeg.FS('readFile', outputImageName);
+        thumbnailsContainer.innerHTML = ''; // Clear any existing thumbnails
 
-                        const img = document.createElement('img');
-                        img.src = URL.createObjectURL(new Blob([data.buffer], { type: 'image/jpeg' }));
-                        img.alt = `Thumbnail ${i + 1}`;
-                        thumbnailsContainer.appendChild(img);
-                    }
-                    message.innerHTML = 'Thumbnails generated successfully!';
-                } catch (error) {
-                    message.innerHTML = `Error: ${error.message}`;
-                    console.error(error);
-                }
-            }
+        for (let i = 0; i < 30; i++) {
+            const frameNumber = i * interval;
+            const outputImageName = `thumbnail${i}.jpg`;
+
+            const args = [];
+            args.push("-skip_frame", interval >= 2 ? "nokey" : "default");
+            args.push("-vsync", "2");
+            args.push("-flags2", "fast");
+            args.push("-an"); // no audio
+            args.push("-sn"); // no subtitles
+            args.push("-dn"); // no data streams
+            args.push("-i", originalFile.name);
+            args.push("-vf", `select='eq(n\\,${frameNumber})',scale=640:360:flags=bilinear`);
+            args.push("-q:v", "2");
+            args.push("-frames:v", "1");
+            args.push("-f", "image2");
+            args.push(outputImageName);
+
+            await ffmpeg.run(...args);
+            const data = ffmpeg.FS('readFile', outputImageName);
+
+            const img = document.createElement('img');
+            img.src = URL.createObjectURL(new Blob([data.buffer], { type: 'image/jpeg' }));
+            img.alt = `Thumbnail ${i + 1}`;
+            thumbnailsContainer.appendChild(img);
+        }
+        message.innerHTML = 'Thumbnails generated successfully!';
+    } catch (error) {
+        message.innerHTML = `Error: ${error.message}`;
+        console.error(error);
+    }
+}
+
         });
     </script>
 </body>
