@@ -93,38 +93,10 @@
             video.onloadedmetadata = function() {
                 const duration = video.duration;
                 durationSpan.textContent = duration.toFixed(2);
-                // Initialize slider after getting duration
-                initializeSlider(duration);
                 generateThumbnails(duration); // Generate thumbnails immediately
             };
         }
 
-        function initializeSlider(duration) {
-            if (sliderInstance) {
-                sliderInstance.destroy();
-            }
-
-            sliderInstance = noUiSlider.create(slider, {
-                start: [0, duration],
-                connect: true,
-                step: 1,
-                range: {
-                    'min': 0,
-                    'max': duration
-                },
-                behaviour: 'drag-tap',
-                limit: 60,
-                margin: 10
-            });
-
-            sliderInstance.on('update', function(values, handle) {
-                if (handle === 0) {
-                    document.getElementById('start-time').value = values[handle];
-                } else {
-                    document.getElementById('end-time').value = values[handle];
-                }
-            });
-        }
 
         async function generateThumbnails(duration) {
             try {
