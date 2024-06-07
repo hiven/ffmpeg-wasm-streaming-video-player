@@ -138,25 +138,24 @@ async function generateThumbnails(duration) {
 
         // Calculate the frame interval based on the desired number of thumbnails
         const numThumbnails = 30; // Adjust as needed
-        const frameInterval = duration / numThumbnails;
+        const interval = duration / numThumbnails;
 
         thumbnailsContainer.innerHTML = ''; // Clear any existing thumbnails
 
         // Use the frame interval to generate thumbnails
         for (let i = 0; i < numThumbnails; i++) {
-            const timestamp = (frameInterval * i).toFixed(2);
+            const timestamp = (interval * i).toFixed(2);
             const outputImageName = `thumbnail${i}.jpg`;
 
             // Extract the frame at the specified timestamp with optimized options
             await ffmpeg.run(
-                '-skip_frame', frameInterval >= 2 ? 'nokey' : 'default',
+                '-skip_frame', interval >= 2 ? 'nokey' : 'default',
                 '-vsync', '2',
                 '-flags2', 'fast',
                 '-an', '-sn', '-dn',
                 '-i', originalFile.name,
-                '-vf', `fps=1/${frameInterval},scale=-1:30:flags=bilinear`,
+                '-vf', `fps=1/${interval},scale=-1:30:flags=bilinear`,
                 '-f', 'image2',
-                '-ss', timestamp, // Set the timestamp for the frame extraction
                 outputImageName
             );
             const data = ffmpeg.FS('readFile', outputImageName);
@@ -173,6 +172,7 @@ async function generateThumbnails(duration) {
         console.error(error);
     }
 }
+
 
 
     });
