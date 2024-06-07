@@ -39,7 +39,7 @@
                 <label for="uploader">Upload Video:</label><br>
                 <input type="file" name="videoFile" id="uploader">
             </div>
-              <button type="submit" id="submitButton">Submit</button>
+            <button type="submit" id="submitButton">Submit</button>
         </form>
 
         <div class="thumbnails" id="thumbnails"></div>
@@ -92,18 +92,20 @@
                     logToHTML(`Interval: ${interval}`); // Print the interval
                     thumbnailsContainer.innerHTML = '';
 
+                    const startTime = new Date(); // Start time
+
                     const args = [
-    '-skip_frame', interval >= 2 ? 'nokey' : 'default',
-    '-i', originalFile.name,
-    '-vf', `fps=1/${interval}`,
-    '-vsync', '2',
-    '-flags2', 'fast',
-    '-an',
-    '-sn',
-    '-dn',
-    '-f', 'image2',
-    'thumbnail%03d.jpg'
-];
+                        '-skip_frame', interval >= 2 ? 'nokey' : 'default',
+                        '-i', originalFile.name,
+                        '-vf', `fps=1/${interval}`,
+                        '-vsync', '2',
+                        '-flags2', 'fast',
+                        '-an',
+                        '-sn',
+                        '-dn',
+                        '-f', 'image2',
+                        'thumbnail%03d.jpg'
+                    ];
 
                     await ffmpeg.run(...args);
 
@@ -116,6 +118,10 @@
                         img.alt = `Thumbnail ${i + 1}`;
                         thumbnailsContainer.appendChild(img);
                     }
+
+                    const endTime = new Date(); // End time
+                    const timeTaken = (endTime - startTime) / 1000; // Calculate time taken in seconds
+                    logToHTML(`Time taken: ${timeTaken} seconds`);
 
                     message.innerHTML = 'Thumbnails generated successfully!';
                 } catch (error) {
