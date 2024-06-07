@@ -139,6 +139,7 @@ async function generateThumbnails(duration) {
         // Calculate the frame interval based on the desired number of thumbnails
         const numThumbnails = 30; // Adjust as needed
         const frameInterval = duration / numThumbnails;
+        console.log('frameInterval:', frameInterval);
 
         thumbnailsContainer.innerHTML = ''; // Clear any existing thumbnails
 
