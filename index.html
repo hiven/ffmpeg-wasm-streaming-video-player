@@ -126,40 +126,56 @@
             });
         }
 
-        async function generateThumbnails(duration) {
+     async function generateThumbnails(duration) {
+    try {
+        if (!ffmpeg.isLoaded()) {
+            message.innerHTML = 'Loading FFmpeg...';
+            await ffmpeg.load();
+        }
+        message.innerHTML = 'Generating thumbnails...';
+
+        ffmpeg.FS('writeFile', originalFile.name, await fetchFile(originalFile));
+
+        const numThumbnails = 30;
+        const ffmpegArgs = [
+            '-i', originalFile.name,
+            '-vf', `fps=${numThumbnails / duration},scale=640:360:flags=bilinear`,
+            '-vsync', 'vfr',
+            '-skip_frame', 'nokey',
+            '-flags2', 'fast',
+            '-an', // no audio
+            '-sn', // no subtitles
+            '-dn', // no data streams
+            'thumbnail%03d.jpg'
+        ];
+
+        console.log('Running FFmpeg with arguments:', ffmpegArgs);
+
+        await ffmpeg.run(...ffmpegArgs);
+
+        thumbnailsContainer.innerHTML = ''; // Clear any existing thumbnails
+
+        for (let i = 0; i < numThumbnails; i++) {
+            const outputImageName = `thumbnail${(i + 1).toString().padStart(3, '0')}.jpg`;
             try {
-                if (!ffmpeg.isLoaded()) {
-                    message.innerHTML = 'Loading FFmpeg...';
-                    await ffmpeg.load();
-                }
-                message.innerHTML = 'Generating thumbnails...';
+                const data = ffmpeg.FS('readFile', outputImageName);
 
-                ffmpeg.FS('writeFile', originalFile.name, await fetchFile(originalFile));
-
-                // Calculate timestamps for 30 equally spaced frames
-                const frameInterval = duration / 30;
-                thumbnailsContainer.innerHTML = ''; // Clear any existing thumbnails
-
-                for (let i = 0; i < 30; i++) {
-                    const timestamp = (frameInterval * i).toFixed(2);
-                    const outputImageName = `thumbnail${i}.jpg`;
-
-                    // Extract the frame at the specified timestamp with optimized options
-                    await ffmpeg.run('-skip_frame', 'nokey', '-vsync', '2', '-flags2', 'fast', '-an', '-sn', '-dn', '-i', originalFile.name, '-vf', `fps=1/${frameInterval},scale=640:360:flags=bilinear`, '-q:v', '2', '-frames:v', '1', '-ss', timestamp, outputImageName);
-                    const data = ffmpeg.FS('readFile', outputImageName);
-
-                    // Create a Blob URL and display the thumbnail
-                    const img = document.createElement('img');
-                    img.src = URL.createObjectURL(new Blob([data.buffer], { type: 'image/jpeg' }));
-                    img.alt = `Thumbnail ${i + 1}`;
-                    thumbnailsContainer.appendChild(img);
-                }
-                message.innerHTML = 'Thumbnails generated successfully!';
-            } catch (error) {
-                message.innerHTML = `Error: ${error.message}`;
-                console.error(error);
+                // Create a Blob URL and display the thumbnail
+                const img = document.createElement('img');
+                img.src = URL.createObjectURL(new Blob([data.buffer], { type: 'image/jpeg' }));
+                img.alt = `Thumbnail ${i + 1}`;
+                thumbnailsContainer.appendChild(img);
+            } catch (e) {
+                console.error(`Error reading file ${outputImageName}:`, e);
             }
         }
+        message.innerHTML = 'Thumbnails generated successfully!';
+    } catch (error) {
+        message.innerHTML = `Error: ${error.message}`;
+        console.error('Error during thumbnail generation:', error);
+    }
+}
+
     });
 </script>
 </body>
