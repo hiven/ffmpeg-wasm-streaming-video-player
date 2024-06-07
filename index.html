@@ -88,7 +88,7 @@
                     const interval = duration / frameCount;
                     thumbnailsContainer.innerHTML = '';
 
-                    const filter = `fps=${frameCount / duration}`;
+                    const filter = `fps=1/16`;
                     await ffmpeg.run(
                         '-i', 'input.mp4',
                         '-vf', filter,
