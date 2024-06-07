@@ -145,7 +145,7 @@
                 // Generate the thumbnails using the fps filter
                await ffmpeg.run(
                     '-i', originalFile.name,
-                    '-vf', `fps=${numThumbnails / duration},scale=640:360:flags=bilinear`,
+                    '-vf', `fps=${numThumbnails / duration}`,
                     '-skip_frame', frameInterval >= 2 ? 'nokey' : 'default',
                     '-vsync', '2',
                     '-flags2', 'fast',
