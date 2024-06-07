@@ -49,7 +49,7 @@
 
     <script>
         const { createFFmpeg, fetchFile } = FFmpeg;
-        const ffmpeg = createFFmpeg({ log: true });
+        const ffmpeg = createFFmpeg({ log: false });
         let originalFile = null;
 
         document.addEventListener("DOMContentLoaded", function() {
