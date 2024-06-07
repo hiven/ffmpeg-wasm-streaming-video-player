@@ -103,9 +103,7 @@
                         args.push("-sn"); // no subtitles
                         args.push("-dn"); // no data streams
                         args.push("-i", originalFile.name);
-                        args.push("-vf", `fps=1/17`);
-                       // args.push("-q:v", "2");
-                       // args.push("-frames:v", "1");
+                        args.push("-vf", `fps=1/30`);
                         args.push("-f", "image2");
                         args.push(outputImageName);
 
