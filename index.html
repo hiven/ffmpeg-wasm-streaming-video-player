@@ -125,53 +125,59 @@
                 }
             });
         }
+async function generateThumbnails(duration) {
+    try {
+        if (!ffmpeg.isLoaded()) {
+            message.innerHTML = 'Loading FFmpeg...';
+            await ffmpeg.load();
+        }
+        message.innerHTML = 'Generating thumbnails...';
 
-        async function generateThumbnails(duration) {
+        ffmpeg.FS('writeFile', originalFile.name, await fetchFile(originalFile));
+
+        const numThumbnails = 30; // Number of thumbnails to generate
+        const frameInterval = duration / numThumbnails;
+        console.log('frameInterval:', frameInterval);
+
+        thumbnailsContainer.innerHTML = ''; // Clear any existing thumbnails
+
+        const ffmpegArgs = [
+            '-i', originalFile.name,
+            '-vf', `fps=${numThumbnails / duration},scale=640:360:flags=bilinear`,
+            '-skip_frame', frameInterval >= 2 ? 'nokey' : 'default',
+            '-vsync', '2',
+            '-flags2', 'fast',
+            '-an', // no audio
+            '-sn', // no subtitles
+            '-dn', // no data streams
+            'thumbnail%03d.jpg'
+        ];
+
+        console.log('Running FFmpeg with arguments:', ffmpegArgs);
+
+        await ffmpeg.run(...ffmpegArgs);
+
+        for (let i = 0; i < numThumbnails; i++) {
+            const outputImageName = `thumbnail${(i + 1).toString().padStart(3, '0')}.jpg`;
             try {
-                if (!ffmpeg.isLoaded()) {
-                    message.innerHTML = 'Loading FFmpeg...';
-                    await ffmpeg.load();
-                }
-                message.innerHTML = 'Generating thumbnails...';
+                const data = ffmpeg.FS('readFile', outputImageName);
 
-                ffmpeg.FS('writeFile', originalFile.name, await fetchFile(originalFile));
-
-                const numThumbnails = 30; // Number of thumbnails to generate
-                const frameInterval = duration / numThumbnails;
-                console.log('frameInterval:', frameInterval);
-
-                thumbnailsContainer.innerHTML = ''; // Clear any existing thumbnails
-
-                // Generate the thumbnails using the fps filter
-                await ffmpeg.run(
-                    '-i', originalFile.name,
-                    '-vf', `fps=${numThumbnails / duration}`,
-                    '-vsync', '2',
-                    '-skip_frame', frameInterval >= 2 ? 'nokey' : 'default',
-                    '-flags2', 'fast',
-                    '-an', // no audio
-                    '-sn', // no subtitles
-                    '-dn', // no data streams
-                    'thumbnail%03d.jpg'
-                );
-
-                // Display the generated thumbnails
-                for (let i = 0; i < numThumbnails; i++) {
-                    const outputImageName = `thumbnail${(i + 1).toString().padStart(3, '0')}.jpg`;
-                    const data = ffmpeg.FS('readFile', outputImageName);
-
-                    // Create a Blob URL and display the thumbnail
-                    const img = document.createElement('img');
-                    img.src = URL.createObjectURL(new Blob([data.buffer], { type: 'image/jpeg' }));
-                    img.alt = `Thumbnail ${i + 1}`;
-                    thumbnailsContainer.appendChild(img);
-                }
-                message.innerHTML = 'Thumbnails generated successfully!';
-            } catch (error) {
-                message.innerHTML = `Error: ${error.message}`;
-                console.error(error);
+                // Create a Blob URL and display the thumbnail
+                const img = document.createElement('img');
+                img.src = URL.createObjectURL(new Blob([data.buffer], { type: 'image/jpeg' }));
+                img.alt = `Thumbnail ${i + 1}`;
+                thumbnailsContainer.appendChild(img);
+            } catch (e) {
+                console.error(`Error reading file ${outputImageName}:`, e);
             }
         }
+        message.innerHTML = 'Thumbnails generated successfully!';
+    } catch (error) {
+        message.innerHTML = `Error: ${error.message}`;
+        console.error('Error during thumbnail generation:', error);
+    }
+}
+
     });
 </script>
 </body>
