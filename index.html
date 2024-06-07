@@ -152,8 +152,7 @@
                         '-an', '-sn', '-dn',
                         '-i', originalFile.name,
                         '-vf', `fps=1/${frameInterval},scale=-1:30:flags=bilinear`,
-                        '-qscale:v', '3',
-                        '-frames:v', '1',
+                        '-f', 'image2',
                         outputImageName
                     );
                     const data = ffmpeg.FS('readFile', outputImageName);
