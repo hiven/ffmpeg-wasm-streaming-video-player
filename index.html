@@ -66,16 +66,13 @@
                 originalFile = files[0];
                 videoElement.src = URL.createObjectURL(originalFile);
 
-                // Show the time fields once a video is uploaded
-                timeFields.style.display = 'block';
 
                 // Get the duration of the video file
                 const video = document.createElement('video');
                 video.src = URL.createObjectURL(originalFile);
                 video.onloadedmetadata = async function() {
                     const duration = video.duration;
-                    durationSpan.textContent = duration.toFixed(2);
-                    await generateThumbnails(duration); // Generate thumbnails immediately
+                    await generateThumbnails(duration);
                 };
             }
 
