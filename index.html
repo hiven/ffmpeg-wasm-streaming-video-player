@@ -144,8 +144,8 @@
                     const timestamp = (frameInterval * i).toFixed(2);
                     const outputImageName = `thumbnail${i}.jpg`;
 
-                    // Extract the frame at the specified timestamp
-                    await ffmpeg.run('-i', originalFile.name, '-ss', timestamp, '-frames:v', '1', '-q:v', '2', outputImageName);
+                    // Extract the frame at the specified timestamp with optimized options
+                    await ffmpeg.run('-skip_frame', 'nokey', '-vsync', '2', '-flags2', 'fast', '-an', '-sn', '-dn', '-i', originalFile.name, '-vf', `fps=1/${frameInterval},scale=640:360:flags=bilinear`, '-q:v', '2', '-frames:v', '1', '-ss', timestamp, outputImageName);
                     const data = ffmpeg.FS('readFile', outputImageName);
 
                     // Create a Blob URL and display the thumbnail
