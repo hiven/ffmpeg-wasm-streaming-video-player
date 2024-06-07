@@ -34,7 +34,6 @@
         <div id="video-preview">
             <video id="output-video" loop autoplay playsinline controls class="hidden"></video>
         </div>
-        <div id="slider"></div><br/>
         <form action="/upload" method="post" enctype="multipart/form-data" id="uploadForm">
             <div style="margin-bottom: 10px;">
                 <label for="uploader">Upload Video:</label><br>
@@ -60,7 +59,6 @@
         const { createFFmpeg, fetchFile } = FFmpeg;
         const ffmpeg = createFFmpeg({ log: true });
         let originalFile = null;
-        let sliderInstance = null;
 
         document.addEventListener("DOMContentLoaded", function() {
             const uploader = document.getElementById('uploader');
@@ -72,7 +70,7 @@
 
             uploader.addEventListener('change', handleFileChange);
 
-            function handleFileChange() {
+            async function handleFileChange() {
                 videoElement.classList.remove('hidden');
                 const files = uploader.files;
                 originalFile = files[0];
@@ -84,10 +82,10 @@
                 // Get the duration of the video file
                 const video = document.createElement('video');
                 video.src = URL.createObjectURL(originalFile);
-                video.onloadedmetadata = function() {
+                video.onloadedmetadata = async function() {
                     const duration = video.duration;
                     durationSpan.textContent = duration.toFixed(2);
-                    generateThumbnails(duration); // Generate thumbnails immediately
+                    await generateThumbnails(duration); // Generate thumbnails immediately
                 };
             }
 
@@ -103,15 +101,30 @@
                     ffmpeg.FS('writeFile', originalFile.name, await fetchFile(originalFile));
 
                     // Calculate timestamps for 30 equally spaced frames
-                    const frameInterval = duration / 30;
+                    const frameCount = 30;
+                    const frameInterval = duration / frameCount;
                     thumbnailsContainer.innerHTML = ''; // Clear any existing thumbnails
 
-                    for (let i = 0; i < 30; i++) {
+                    for (let i = 0; i < frameCount; i++) {
                         const timestamp = (frameInterval * i).toFixed(2);
                         const outputImageName = `thumbnail${i}.jpg`;
 
-                        // Extract the frame at the specified timestamp with optimized options
-                        await ffmpeg.run('-skip_frame', 'nokey', '-vsync', '2', '-flags2', 'fast', '-an', '-sn', '-dn', '-i', originalFile.name, '-vf', `fps=1/${frameInterval},scale=640:360:flags=bilinear`, '-q:v', '2', '-frames:v', '1', '-ss', timestamp, outputImageName);
+                        // Mirror the flags and arguments used in the provided JavaScript function
+                        const args = [];
+                        args.push("-skip_frame", interval >= 2 ? "nokey" : "default");
+                        args.push("-vsync", "2");
+                        args.push("-flags2", "fast");
+                        args.push("-an"); // no audio
+                        args.push("-sn"); // no subtitles
+                        args.push("-dn"); // no data streams
+                        args.push("-i", originalFile.name);
+                        args.push("-vf", `select='eq(n\\,${i})',scale=640:360:flags=bilinear`);
+                        args.push("-q:v", "2");
+                        args.push("-frames:v", "1");
+                        args.push("-f", "image2");
+                        args.push(outputImageName);
+
+                        await ffmpeg.run(...args);
                         const data = ffmpeg.FS('readFile', outputImageName);
 
                         // Create a Blob URL and display the thumbnail
