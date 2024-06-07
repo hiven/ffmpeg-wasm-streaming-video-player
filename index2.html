@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Thumbnail Generator</title>
+    <script src="https://cdn.jsdelivr.net/npm/@ffmpeg/ffmpeg@0.11.2/dist/ffmpeg.min.js"></script>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 0;
+        }
+        .container {
+            max-width: 800px;
+            margin: 20px auto;
+            padding: 20px;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+        }
+        #thumbnails {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            margin-top: 20px;
+        }
+        .thumbnail img {
+            width: 100px;
+            height: auto;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Thumbnail Generator</h1>
+        <form id="videoForm" enctype="multipart/form-data">
+            <input type="file" id="videoFile" accept="video/*" required>
+            <button type="submit">Generate Thumbnails</button>
+        </form>
+        <div id="thumbnails"></div>
+    </div>
+
+    <script>
+        const { createFFmpeg, fetchFile } = FFmpeg;
+        const ffmpeg = createFFmpeg({ log: true });
+
+        document.addEventListener('DOMContentLoaded', async () => {
+            const videoForm = document.getElementById('videoForm');
+            const videoFileInput = document.getElementById('videoFile');
+            const thumbnailsContainer = document.getElementById('thumbnails');
+
+            videoForm.addEventListener('submit', async (event) => {
+                event.preventDefault();
+
+                const videoFile = videoFileInput.files[0];
+                if (!videoFile) return;
+
+                // Load FFmpeg if not already loaded
+                if (!ffmpeg.isLoaded()) {
+                    await ffmpeg.load();
+                }
+
+                // Generate thumbnails
+                await generateThumbnails(videoFile);
+            });
+
+            async function generateThumbnails(videoFile) {
+                const interval = calculateInterval(videoFile.duration);
+                const args = [
+                    '-i', 'input.mp4',
+                    '-vf', `fps=1/${interval},scale=100:100`,
+                    '-f', 'image2',
+                    'output%d.png'
+                ];
+
+                ffmpeg.FS('writeFile', 'input.mp4', await fetchFile(videoFile));
+                await ffmpeg.run(...args);
+
+                // Display thumbnails
+                thumbnailsContainer.innerHTML = '';
+                for (let i = 1; i <= 30; i++) {
+                    const thumbnailPath = `output${i}.png`;
+                    const thumbnailBlob = ffmpeg.FS('readFile', thumbnailPath);
+                    const thumbnailURL = URL.createObjectURL(new Blob([thumbnailBlob], { type: 'image/png' }));
+                    
+                    const thumbnailImg = document.createElement('img');
+                    thumbnailImg.src = thumbnailURL;
+                    thumbnailImg.alt = `Thumbnail ${i}`;
+                    const thumbnailDiv = document.createElement('div');
+                    thumbnailDiv.className = 'thumbnail';
+                    thumbnailDiv.appendChild(thumbnailImg);
+                    thumbnailsContainer.appendChild(thumbnailDiv);
+                }
+            }
+
+            function calculateInterval(videoDuration) {
+                return Math.ceil(videoDuration / 30);
+            }
+        });
+    </script>
+</body>
+</html>
