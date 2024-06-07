@@ -93,17 +93,17 @@
                     thumbnailsContainer.innerHTML = '';
 
                     const args = [
-                        '-skip_frame", interval >= 2 ? "nokey" : "default");
-                        '-i', originalFile.name,
-                        '-vf', `fps=1/${interval}`,
-                        '-vsync', '2',
-                        '-flags2', 'fast',
-                        '-an',
-                        '-sn',
-                        '-dn',
-                        '-f', 'image2',
-                        'thumbnail%03d.jpg'
-                    ];
+    '-skip_frame', interval >= 2 ? 'nokey' : 'default',
+    '-i', originalFile.name,
+    '-vf', `fps=1/${interval}`,
+    '-vsync', '2',
+    '-flags2', 'fast',
+    '-an',
+    '-sn',
+    '-dn',
+    '-f', 'image2',
+    'thumbnail%03d.jpg'
+];
 
                     await ffmpeg.run(...args);
 
