@@ -126,60 +126,47 @@
             });
         }
 
-async function generateThumbnails(duration) {
-    try {
-        if (!ffmpeg.isLoaded()) {
-            message.innerHTML = 'Loading FFmpeg...';
-            await ffmpeg.load();
+        async function generateThumbnails(duration) {
+            try {
+                if (!ffmpeg.isLoaded()) {
+                    message.innerHTML = 'Loading FFmpeg...';
+                    await ffmpeg.load();
+                }
+                message.innerHTML = 'Generating thumbnails...';
+
+                ffmpeg.FS('writeFile', originalFile.name, await fetchFile(originalFile));
+
+                const numThumbnails = 30; // Number of thumbnails to generate
+                const frameInterval = duration / numThumbnails;
+                console.log('frameInterval:', frameInterval);
+
+                thumbnailsContainer.innerHTML = ''; // Clear any existing thumbnails
+
+                // Generate the thumbnails using the fps filter
+                await ffmpeg.run(
+                    '-i', originalFile.name,
+                    '-vf', `fps=${numThumbnails / duration}`,
+                    '-vsync', 'vfr',
+                    'thumbnail%03d.jpg'
+                );
+
+                // Display the generated thumbnails
+                for (let i = 0; i < numThumbnails; i++) {
+                    const outputImageName = `thumbnail${(i + 1).toString().padStart(3, '0')}.jpg`;
+                    const data = ffmpeg.FS('readFile', outputImageName);
+
+                    // Create a Blob URL and display the thumbnail
+                    const img = document.createElement('img');
+                    img.src = URL.createObjectURL(new Blob([data.buffer], { type: 'image/jpeg' }));
+                    img.alt = `Thumbnail ${i + 1}`;
+                    thumbnailsContainer.appendChild(img);
+                }
+                message.innerHTML = 'Thumbnails generated successfully!';
+            } catch (error) {
+                message.innerHTML = `Error: ${error.message}`;
+                console.error(error);
+            }
         }
-        message.innerHTML = 'Generating thumbnails...';
-
-        ffmpeg.FS('writeFile', originalFile.name, await fetchFile(originalFile));
-
-        // Calculate the frame interval based on the desired number of thumbnails
-        const numThumbnails = 30; // Adjust as needed
-        const frameInterval = duration / numThumbnails;
-        console.log('frameInterval:', frameInterval);
-
-        thumbnailsContainer.innerHTML = ''; // Clear any existing thumbnails
-
-        // Use the frame interval to generate thumbnails
-        for (let i = 0; i < numThumbnails; i++) {
-            const timestamp = (frameInterval * i).toFixed(2);
-            const outputImageName = `thumbnail${i}.jpg`;
-
-            // Debug: Log timestamp for debugging
-            console.log('Timestamp:', timestamp);
-            
-            // Extract the frame at the specified timestamp with optimized options
-            await ffmpeg.run(
-                '-skip_frame', frameInterval >= 2 ? 'nokey' : 'default',
-                '-vsync', '2',
-                '-flags2', 'fast',
-                '-an', '-sn', '-dn',
-                '-i', originalFile.name,
-                '-vf', `fps=1/${frameInterval}`,
-                '-f', 'image2',
-                outputImageName
-            );
-            const data = ffmpeg.FS('readFile', outputImageName);
-
-            // Debug: Log frame data for debugging
-            console.log('Frame data:', data);
-
-            // Create a Blob URL and display the thumbnail
-            const img = document.createElement('img');
-            img.src = URL.createObjectURL(new Blob([data.buffer], { type: 'image/jpeg' }));
-            img.alt = `Thumbnail ${i + 1}`;
-            thumbnailsContainer.appendChild(img);
-        }
-        message.innerHTML = 'Thumbnails generated successfully!';
-    } catch (error) {
-        message.innerHTML = `Error: ${error.message}`;
-        console.error(error);
-    }
-}
-
     });
 </script>
 </body>
