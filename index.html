@@ -147,6 +147,9 @@ async function generateThumbnails(duration) {
             const timestamp = (frameInterval * i).toFixed(2);
             const outputImageName = `thumbnail${i}.jpg`;
 
+            // Debug: Log timestamp for debugging
+            console.log('Timestamp:', timestamp);
+            
             // Extract the frame at the specified timestamp with optimized options
             await ffmpeg.run(
                 '-skip_frame', frameInterval >= 2 ? 'nokey' : 'default',
@@ -159,6 +162,9 @@ async function generateThumbnails(duration) {
                 outputImageName
             );
             const data = ffmpeg.FS('readFile', outputImageName);
+
+            // Debug: Log frame data for debugging
+            console.log('Frame data:', data);
 
             // Create a Blob URL and display the thumbnail
             const img = document.createElement('img');
