@@ -94,8 +94,7 @@
 
                     const args = [
                         '-i', originalFile.name,
-                        '-vf', `fps=1/19`,
-                        //'-q:v', '2',
+                        '-vf', `fps=1/{interval}`,
                         'thumbnail%03d.jpg'
                     ];
 
