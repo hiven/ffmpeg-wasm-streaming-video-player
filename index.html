@@ -39,15 +39,7 @@
                 <label for="uploader">Upload Video:</label><br>
                 <input type="file" name="videoFile" id="uploader">
             </div>
-            <div id="timeFields" style="margin-bottom: 10px; display: none;">
-                <label for="start-time">Start Time (in seconds):</label><br>
-                <input type="number" id="start-time" value="0"><br>
-                <label for="end-time">End Time (in seconds):</label><br>
-                <input type="number" id="end-time" value="1"><br>
-                <label for="duration">Duration (in seconds):</label><br>
-                <span id="duration"></span><br>
-            </div>
-            <button type="submit" id="submitButton">Submit</button>
+              <button type="submit" id="submitButton">Submit</button>
         </form>
 
         <div class="thumbnails" id="thumbnails"></div>
@@ -63,8 +55,6 @@
         document.addEventListener("DOMContentLoaded", function() {
             const uploader = document.getElementById('uploader');
             const videoElement = document.getElementById('output-video');
-            const timeFields = document.getElementById('timeFields');
-            const durationSpan = document.getElementById('duration');
             const thumbnailsContainer = document.getElementById('thumbnails');
             const message = document.getElementById('message');
 
