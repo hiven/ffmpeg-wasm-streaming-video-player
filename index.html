@@ -147,6 +147,12 @@
                     '-i', originalFile.name,
                     '-vf', `fps=${numThumbnails / duration}`,
                     '-vsync', 'vfr',
+                    '-skip_frame', frameInterval >= 2 ? 'nokey' : 'default',
+                    //'-vsync', '2',
+                    '-flags2', 'fast',
+                    '-an', // no audio
+                    '-sn', // no subtitles
+                    '-dn', // no data streams
                     'thumbnail%03d.jpg'
                 );
 
