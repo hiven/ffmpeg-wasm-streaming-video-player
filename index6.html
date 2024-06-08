@@ -68,26 +68,11 @@
             originalFile = files[0];
             videoElement.src = URL.createObjectURL(originalFile);
 
-            // Extract duration using onloadedmetadata event
-            extractVideoDuration(originalFile);
+            generateThumbnails();
         }
 
-        function extractVideoDuration(file) {
-            const video = document.createElement('video');
-            video.preload = 'metadata';
-
-            video.onloadedmetadata = function() {
-                window.URL.revokeObjectURL(video.src);
-                const duration = video.duration;
-                generateThumbnails(duration);
-            };
-
-            video.src = URL.createObjectURL(file);
-        }
-
-        async function generateThumbnails(duration) {
+        async function generateThumbnails() {
             try {
-                logToHTML(`Duration: ${duration}`); // Print the duration
                 if (!ffmpeg.isLoaded()) {
                     message.innerHTML = 'Loading FFmpeg...';
                     await ffmpeg.load();
@@ -97,18 +82,15 @@
                 ffmpeg.FS('writeFile', originalFile.name, await fetchFile(originalFile));
 
                 const thumbnailCount = 30;
-                const interval = duration / thumbnailCount;
-                logToHTML(`Interval: ${interval}`); // Print the interval
                 thumbnailsContainer.innerHTML = '';
 
                 const startTime = new Date(); // Start time
 
                 const args = [
-                    '-skip_frame', interval >= 2 ? 'nokey' : 'default',
                     '-i', originalFile.name,
-                    '-vf', `fps=1/${interval},scale=80:45:flags=bilinear`,
-                    '-vsync', '2',
-                    '-flags2', 'fast',
+                    '-vf', `thumbnail,scale=80:45`,
+                    '-frames:v', thumbnailCount,
+                    '-vsync', 'vfr',
                     '-an',
                     '-sn',
                     '-dn',
@@ -153,6 +135,7 @@
         }
     });
 </script>
+
 
 </body>
 </html>
