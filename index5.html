@@ -49,100 +49,110 @@
         <div id="console-log"></div>
     </div>
 
-    <script>
-        const { createFFmpeg, fetchFile } = FFmpeg;
-        const ffmpeg = createFFmpeg({ log: false });
-        let originalFile = null;
+<script>
+    const { createFFmpeg, fetchFile } = FFmpeg;
+    const ffmpeg = createFFmpeg({ log: false });
+    let originalFile = null;
 
-        document.addEventListener("DOMContentLoaded", function() {
-            const uploader = document.getElementById('uploader');
-            const videoElement = document.getElementById('output-video');
-            const thumbnailsContainer = document.getElementById('thumbnails');
-            const message = document.getElementById('message');
+    document.addEventListener("DOMContentLoaded", function() {
+        const uploader = document.getElementById('uploader');
+        const videoElement = document.getElementById('output-video');
+        const thumbnailsContainer = document.getElementById('thumbnails');
+        const message = document.getElementById('message');
 
-            uploader.addEventListener('change', handleFileChange);
+        uploader.addEventListener('change', handleFileChange);
 
-            async function handleFileChange() {
-                videoElement.classList.remove('hidden');
-                const files = uploader.files;
-                originalFile = files[0];
-                videoElement.src = URL.createObjectURL(originalFile);
+        async function handleFileChange() {
+            videoElement.classList.remove('hidden');
+            const files = uploader.files;
+            originalFile = files[0];
+            videoElement.src = URL.createObjectURL(originalFile);
 
-                const video = document.createElement('video');
-                video.src = URL.createObjectURL(originalFile);
-                video.onloadedmetadata = async function() {
-                    const duration = video.duration;
-                    await generateThumbnails(duration);
-                };
-            }
+            // Extract duration using onloadedmetadata event
+            extractVideoDuration(originalFile);
+        }
 
-            async function generateThumbnails(duration) {
-                try {
-                    logToHTML(`Duration: ${duration}`); // Print the duration
-                    if (!ffmpeg.isLoaded()) {
-                        message.innerHTML = 'Loading FFmpeg...';
-                        await ffmpeg.load();
-                    }
-                    message.innerHTML = 'Generating thumbnails...';
+        function extractVideoDuration(file) {
+            const video = document.createElement('video');
+            video.preload = 'metadata';
 
-                    ffmpeg.FS('writeFile', originalFile.name, await fetchFile(originalFile));
+            video.onloadedmetadata = function() {
+                window.URL.revokeObjectURL(video.src);
+                const duration = video.duration;
+                generateThumbnails(duration);
+            };
 
-                    const thumbnailCount = 30;
-                    const interval = duration / thumbnailCount;
-                    logToHTML(`Interval: ${interval}`); // Print the interval
-                    thumbnailsContainer.innerHTML = '';
+            video.src = URL.createObjectURL(file);
+        }
 
-                    const startTime = new Date(); // Start time
-
-                    const args = [
-                        '-skip_frame', interval >= 2 ? 'nokey' : 'default',
-                        '-i', originalFile.name,
-                        '-vf', `fps=1/${interval},scale=80:45:flags=bilinear`,
-                        '-vsync', '2',
-                        '-flags2', 'fast',
-                        '-an',
-                        '-sn',
-                        '-dn',
-                        '-threads', '4', // Use 4 threads
-                        '-f', 'image2',
-                        'thumbnail%03d.jpg'
-                    ];
-
-                    await ffmpeg.run(...args);
-
-                    for (let i = 0; i < thumbnailCount; i++) {
-                        const outputImageName = `thumbnail${String(i + 1).padStart(3, '0')}.jpg`;
-                        const data = ffmpeg.FS('readFile', outputImageName);
-
-                        const img = document.createElement('img');
-                        img.src = URL.createObjectURL(new Blob([data.buffer], { type: 'image/jpeg' }));
-                        img.alt = `Thumbnail ${i + 1}`;
-                        thumbnailsContainer.appendChild(img);
-                    }
-
-                    // Remove generated files to free up memory
-                    for (let i = 0; i < thumbnailCount; i++) {
-                        const outputImageName = `thumbnail${String(i + 1).padStart(3, '0')}.jpg`;
-                        ffmpeg.FS('unlink', outputImageName);
-                    }
-
-                    const endTime = new Date(); // End time
-                    const timeTaken = (endTime - startTime) / 1000; // Calculate time taken in seconds
-                    logToHTML(`Time taken: ${timeTaken} seconds`);
-
-                    message.innerHTML = 'Thumbnails generated successfully!';
-                } catch (error) {
-                    message.innerHTML = `Error: ${error.message}`;
-                    console.error(error);
+        async function generateThumbnails(duration) {
+            try {
+                logToHTML(`Duration: ${duration}`); // Print the duration
+                if (!ffmpeg.isLoaded()) {
+                    message.innerHTML = 'Loading FFmpeg...';
+                    await ffmpeg.load();
                 }
-            }
+                message.innerHTML = 'Generating thumbnails...';
 
-            // Function to print logs to HTML
-            function logToHTML(message) {
-                const logDiv = document.getElementById('console-log');
-                logDiv.innerHTML += `<p>${message}</p>`;
+                ffmpeg.FS('writeFile', originalFile.name, await fetchFile(originalFile));
+
+                const thumbnailCount = 30;
+                const interval = duration / thumbnailCount;
+                logToHTML(`Interval: ${interval}`); // Print the interval
+                thumbnailsContainer.innerHTML = '';
+
+                const startTime = new Date(); // Start time
+
+                const args = [
+                    '-skip_frame', interval >= 2 ? 'nokey' : 'default',
+                    '-i', originalFile.name,
+                    '-vf', `fps=1/${interval},scale=80:45:flags=bilinear`,
+                    '-vsync', '2',
+                    '-flags2', 'fast',
+                    '-an',
+                    '-sn',
+                    '-dn',
+                    '-threads', '4', // Use 4 threads
+                    '-f', 'image2',
+                    'thumbnail%03d.jpg'
+                ];
+
+                await ffmpeg.run(...args);
+
+                for (let i = 0; i < thumbnailCount; i++) {
+                    const outputImageName = `thumbnail${String(i + 1).padStart(3, '0')}.jpg`;
+                    const data = ffmpeg.FS('readFile', outputImageName);
+
+                    const img = document.createElement('img');
+                    img.src = URL.createObjectURL(new Blob([data.buffer], { type: 'image/jpeg' }));
+                    img.alt = `Thumbnail ${i + 1}`;
+                    thumbnailsContainer.appendChild(img);
+                }
+
+                // Remove generated files to free up memory
+                for (let i = 0; i < thumbnailCount; i++) {
+                    const outputImageName = `thumbnail${String(i + 1).padStart(3, '0')}.jpg`;
+                    ffmpeg.FS('unlink', outputImageName);
+                }
+
+                const endTime = new Date(); // End time
+                const timeTaken = (endTime - startTime) / 1000; // Calculate time taken in seconds
+                logToHTML(`Time taken: ${timeTaken} seconds`);
+
+                message.innerHTML = 'Thumbnails generated successfully!';
+            } catch (error) {
+                message.innerHTML = `Error: ${error.message}`;
+                console.error(error);
             }
-        });
-    </script>
+        }
+
+        // Function to print logs to HTML
+        function logToHTML(message) {
+            const logDiv = document.getElementById('console-log');
+            logDiv.innerHTML += `<p>${message}</p>`;
+        }
+    });
+</script>
+
 </body>
 </html>
