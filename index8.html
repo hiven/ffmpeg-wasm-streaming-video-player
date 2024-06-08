@@ -1,0 +1,171 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <script src="https://cdn.jsdelivr.net/npm/@ffmpeg/ffmpeg@0.11.2/dist/ffmpeg.min.js"></script>
+    <link rel="stylesheet" href="css/style.css">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <style>
+        .container {
+            width: 500px;
+            margin: 0 auto; /* Center the container horizontally */
+        }
+        #video-controls {
+            display: flex;
+            flex-direction: column;
+        }
+        #output-video {
+            width: 100%; /* Set the video width to 100% of its parent container */
+        }
+        .thumbnails {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            margin-top: 20px;
+        }
+        .thumbnail img {
+            width: 100px;
+            height: auto;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h3>Video Editor</h3>
+        <div id="video-preview">
+            <video id="output-video" loop autoplay playsinline controls class="hidden"></video>
+        </div>
+        <form action="/upload" method="post" enctype="multipart/form-data" id="uploadForm">
+            <div style="margin-bottom: 10px;">
+                <label for="uploader">Upload Video:</label><br>
+                <input type="file" name="videoFile" id="uploader">
+            </div>
+            <button type="submit" id="submitButton">Submit</button>
+        </form>
+
+        <div class="thumbnails" id="thumbnails"></div>
+        
+        <p id="message"></p>
+        <!-- Added div to display console logs -->
+        <div id="console-log"></div>
+    </div>
+
+    <script>
+        const { createFFmpeg, fetchFile } = FFmpeg;
+        const ffmpeg = createFFmpeg({ log: false });
+        let originalFile = null;
+
+        document.addEventListener("DOMContentLoaded", function() {
+            const uploader = document.getElementById('uploader');
+            const videoElement = document.getElementById('output-video');
+            const thumbnailsContainer = document.getElementById('thumbnails');
+            const message = document.getElementById('message');
+
+            uploader.addEventListener('change', handleFileChange);
+
+            async function handleFileChange() {
+                videoElement.classList.remove('hidden');
+                const files = uploader.files;
+                originalFile = files[0];
+                videoElement.src = URL.createObjectURL(originalFile);
+
+                // Use FFmpeg to get the video duration
+                try {
+                    if (!ffmpeg.isLoaded()) {
+                        message.innerHTML = 'Loading FFmpeg...';
+                        await ffmpeg.load();
+                    }
+                    message.innerHTML = 'Getting video duration...';
+                    
+                    ffmpeg.FS('writeFile', originalFile.name, await fetchFile(originalFile));
+                    
+                    const args = [
+                        '-i', originalFile.name,
+                        '-hide_banner',
+                        '-f', 'null', // Output null to disable output
+                        '-'
+                    ];
+                    
+                    const { data } = await ffmpeg.run(...args);
+                    
+                    // Parse the duration from the FFmpeg output
+                    const durationRegex = /Duration: (\d\d:\d\d:\d\d\.\d\d)/;
+                    const durationMatch = data.trim().match(durationRegex);
+                    
+                    if (durationMatch && durationMatch.length > 1) {
+                        const durationString = durationMatch[1];
+                        const [hours, minutes, seconds] = durationString.split(':');
+                        const durationInSeconds = parseInt(hours) * 3600 + parseInt(minutes) * 60 + parseFloat(seconds);
+                        await generateThumbnails(durationInSeconds);
+                    } else {
+                        throw new Error('Failed to get video duration');
+                    }
+                } catch (error) {
+                    message.innerHTML = `Error: ${error.message}`;
+                    console.error(error);
+                }
+            }
+
+            async function generateThumbnails(duration) {
+                try {
+                    logToHTML(`Duration: ${duration}`); // Print the duration
+                    if (!ffmpeg.isLoaded()) {
+                        message.innerHTML = 'Loading FFmpeg...';
+                        await ffmpeg.load();
+                    }
+                    message.innerHTML = 'Generating thumbnails...';
+
+                    ffmpeg.FS('writeFile', originalFile.name, await fetchFile(originalFile));
+
+                    const thumbnailCount = 30;
+                    const interval = duration / thumbnailCount;
+                    logToHTML(`Interval: ${interval}`); // Print the interval
+                    thumbnailsContainer.innerHTML = '';
+
+                    const startTime = new Date(); // Start time
+
+                    const args = [
+                        '-skip_frame', interval >= 2 ? 'nokey' : 'default',
+                        '-i', originalFile.name,
+                        '-vf', `fps=1/${interval},scale=160:90:flags=bilinear`,
+                        '-vsync', '2',
+                        '-flags2', 'fast',
+                        '-an',
+                        '-sn',
+                        '-dn',
+                        '-threads', '4', // Use 4 threads
+                        '-f', 'image2',
+                        'thumbnail%03d.jpg'
+                    ];
+
+                    await ffmpeg.run(...args);
+
+                    for (let i = 0; i < thumbnailCount; i++) {
+                        const outputImageName = `thumbnail${String(i + 1).padStart(3, '0')}.jpg`;
+                        const data = ffmpeg.FS('readFile', outputImageName);
+
+                        const img = document.createElement('img');
+                        img.src = URL.createObjectURL(new Blob([data.buffer], { type: 'image/jpeg' }));
+                        img.alt = `Thumbnail ${i + 1}`;
+                        thumbnailsContainer.appendChild(img);
+                    }
+
+                    const endTime = new Date(); // End time
+                    const timeTaken = (endTime - startTime) / 1000; // Calculate time taken in seconds
+                    logToHTML(`Time taken: ${timeTaken} seconds`);
+
+                    message.innerHTML = 'Thumbnails generated successfully!';
+                } catch (error) {
+                    message.innerHTML = `Error: ${error.message}`;
+                    console.error(error);
+                }
+            }
+
+            // Function to print logs to HTML
+            function logToHTML(message) {
+                const logDiv = document.getElementById('console-log');
+                logDiv.innerHTML += `<p>${message}</p>`;
+            }
+        });
+    </script>
+</body>
+</html>
