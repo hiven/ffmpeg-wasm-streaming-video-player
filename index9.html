@@ -63,53 +63,54 @@
             uploader.addEventListener('change', handleFileChange);
 
             async function handleFileChange() {
-                videoElement.classList.remove('hidden');
-                const files = uploader.files;
-                originalFile = files[0];
-                videoElement.src = URL.createObjectURL(originalFile);
+    videoElement.classList.remove('hidden');
+    const files = uploader.files;
+    originalFile = files[0];
+    videoElement.src = URL.createObjectURL(originalFile);
 
-                // Use FFmpeg to get the video duration
-                try {
-                    if (!ffmpeg.isLoaded()) {
-                        message.innerHTML = 'Loading FFmpeg...';
-                        await ffmpeg.load();
-                    }
-                    message.innerHTML = 'Getting video duration...';
-                    
-                    ffmpeg.FS('writeFile', originalFile.name, await fetchFile(originalFile));
-                    
-                    const args = [
-                        '-i', originalFile.name,
-                        '-hide_banner',
-                        '-f', 'null', // Output null to disable output
-                        '-'
-                    ];
-                    
-                    logToHTML(`Args: ${args.join(' ')}`); // Log the arguments
-                    
-                    const { data } = await ffmpeg.run(...args);
-                    
-                    logToHTML(`FFmpeg Output: ${data}`); // Log the FFmpeg output
-                    
-                    // Parse the duration from the FFmpeg output
-                    const durationRegex = /Duration: (\d\d:\d\d:\d\d\.\d\d)/;
-                    const durationMatch = data.trim().match(durationRegex);
-                    
-                    logToHTML(`Duration Match: ${JSON.stringify(durationMatch)}`); // Log the duration match result
-                    
-                    if (durationMatch && durationMatch.length > 1) {
-                        const durationString = durationMatch[1];
-                        const [hours, minutes, seconds] = durationString.split(':');
-                        const durationInSeconds = parseInt(hours) * 3600 + parseInt(minutes) * 60 + parseFloat(seconds);
-                        await generateThumbnails(durationInSeconds);
-                    } else {
-                        throw new Error('Failed to get video duration');
-                    }
-                } catch (error) {
-                    message.innerHTML = `Error: ${error.message}`;
-                    console.error(error);
-                }
-            }
+    // Use FFmpeg to get the video duration
+    try {
+        if (!ffmpeg.isLoaded()) {
+            message.innerHTML = 'Loading FFmpeg...';
+            await ffmpeg.load();
+        }
+        message.innerHTML = 'Getting video duration...';
+        
+        ffmpeg.FS('writeFile', originalFile.name, await fetchFile(originalFile));
+        
+        const args = [
+            '-i', originalFile.name,
+            '-hide_banner',
+            '-f', 'null', // Output null to disable output
+            '-'
+        ];
+        
+        logToHTML(`Args: ${args.join(' ')}`); // Log the arguments
+        
+        const response = await ffmpeg.run(...args);
+        const data = response.data;
+        
+        logToHTML(`FFmpeg Output: ${data}`); // Log the FFmpeg output
+        
+        // Parse the duration from the FFmpeg output
+        const durationRegex = /Duration: (\d\d:\d\d:\d\d\.\d\d)/;
+        const durationMatch = data.trim().match(durationRegex);
+        
+        logToHTML(`Duration Match: ${JSON.stringify(durationMatch)}`); // Log the duration match result
+        
+        if (durationMatch && durationMatch.length > 1) {
+            const durationString = durationMatch[1];
+            const [hours, minutes, seconds] = durationString.split(':');
+            const durationInSeconds = parseInt(hours) * 3600 + parseInt(minutes) * 60 + parseFloat(seconds);
+            await generateThumbnails(durationInSeconds);
+        } else {
+            throw new Error('Failed to get video duration');
+        }
+    } catch (error) {
+        message.innerHTML = `Error: ${error.message}`;
+        console.error(error);
+    }
+}
 
             async function generateThumbnails(duration) {
                 try {
