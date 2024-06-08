@@ -75,29 +75,28 @@
             await ffmpeg.load();
         }
         message.innerHTML = 'Getting video duration...';
-        
+
         ffmpeg.FS('writeFile', originalFile.name, await fetchFile(originalFile));
-        
+
         const args = [
             '-i', originalFile.name,
             '-hide_banner',
             '-f', 'null', // Output null to disable output
             '-'
         ];
-        
+
         logToHTML(`Args: ${args.join(' ')}`); // Log the arguments
-        
+
         const response = await ffmpeg.run(...args);
-        const data = response.data;
-        
-        logToHTML(`FFmpeg Output: ${data}`); // Log the FFmpeg output
-        
+
+        logToHTML(`FFmpeg Output: ${response}`); // Log the FFmpeg output
+
         // Parse the duration from the FFmpeg output
         const durationRegex = /Duration: (\d\d:\d\d:\d\d\.\d\d)/;
-        const durationMatch = data.trim().match(durationRegex);
-        
+        const durationMatch = response.trim().match(durationRegex);
+
         logToHTML(`Duration Match: ${JSON.stringify(durationMatch)}`); // Log the duration match result
-        
+
         if (durationMatch && durationMatch.length > 1) {
             const durationString = durationMatch[1];
             const [hours, minutes, seconds] = durationString.split(':');
@@ -111,7 +110,6 @@
         console.error(error);
     }
 }
-
             async function generateThumbnails(duration) {
                 try {
                     logToHTML(`Duration: ${duration}`); // Print the duration
