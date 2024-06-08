@@ -79,7 +79,8 @@
             video.onloadedmetadata = function() {
                 window.URL.revokeObjectURL(video.src);
                 const duration = video.duration;
-                generateThumbnails(duration);
+                //generateThumbnails(duration);
+                generateThumbnails(20);
             };
 
             video.src = URL.createObjectURL(file);
