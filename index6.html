@@ -88,8 +88,8 @@
 
                 const args = [
                     '-i', originalFile.name,
-                    '-vf', `thumbnail,scale=80:45`,
-                    '-frames:v', thumbnailCount,
+                    '-vf', `select='not(mod(n,${Math.ceil(1000 / thumbnailCount)}))',scale=80:45`,
+                    //'-frames:v', thumbnailCount,
                     '-vsync', 'vfr',
                     '-an',
                     '-sn',
