@@ -120,7 +120,7 @@
 
             async function generateThumbnails(duration) {
                 try {
-                    logToHTML(`Duration: ${duration}`); // Print the duration
+                    //logToHTML(`Duration: ${duration}`); // Print the duration
                     if (!ffmpeg.isLoaded()) {
                         message.innerHTML = 'Loading FFmpeg...';
                         await ffmpeg.load();
@@ -131,7 +131,7 @@
 
                     const thumbnailCount = 30;
                     const interval = duration / thumbnailCount;
-                    logToHTML(`Interval: ${interval}`); // Print the interval
+                    //logToHTML(`Interval: ${interval}`); // Print the interval
                     thumbnailsContainer.innerHTML = '';
 
                     const startTime = new Date(); // Start time
@@ -164,7 +164,7 @@
 
                     const endTime = new Date(); // End time
                     const timeTaken = (endTime - startTime) / 1000; // Calculate time taken in seconds
-                    logToHTML(`Time taken: ${timeTaken} seconds`);
+                    //logToHTML(`Time taken: ${timeTaken} seconds`);
 
                     message.innerHTML = 'Thumbnails generated successfully!';
                 } catch (error) {
