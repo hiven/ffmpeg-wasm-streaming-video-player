@@ -79,10 +79,11 @@
         ffmpeg.FS('writeFile', originalFile.name, await fetchFile(originalFile));
 
         const args = [
-            '-i', originalFile.name,
-            '-hide_banner',
-            '-f', 'null', // Output null to disable output
-            '-'
+            //'-i', originalFile.name,
+            '-i', originalFile.name
+            //'-hide_banner',
+            //'-f', 'null', // Output null to disable output
+            //'-'
         ];
 
         logToHTML(`Args: ${args.join(' ')}`); // Log the arguments
