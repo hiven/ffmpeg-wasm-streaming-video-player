@@ -92,17 +92,17 @@
                         '-i', originalFile.name
                     ];
 
-                    logToHTML(`Args: ${args.join(' ')}`); // Log the arguments
+                    //logToHTML(`Args: ${args.join(' ')}`); // Log the arguments
 
                     await ffmpeg.run(...args);
 
-                    logToHTML(`FFmpeg Output: ${ffmpegOutput}`); // Log the FFmpeg output
+                    //logToHTML(`FFmpeg Output: ${ffmpegOutput}`); // Log the FFmpeg output
 
                     // Parse the duration from the FFmpeg output
                     const durationRegex = /Duration: (\d\d:\d\d:\d\d\.\d\d)/;
                     const durationMatch = ffmpegOutput.match(durationRegex);
 
-                    logToHTML(`Duration Match: ${JSON.stringify(durationMatch)}`); // Log the duration match result
+                    //logToHTML(`Duration Match: ${JSON.stringify(durationMatch)}`); // Log the duration match result
 
                     if (durationMatch && durationMatch.length > 1) {
                         const durationString = durationMatch[1];
@@ -129,7 +129,7 @@
 
                     await ffmpeg.FS('writeFile', originalFile.name, await fetchFile(originalFile));
 
-                    const thumbnailCount = 10;
+                    const thumbnailCount = 30;
                     const interval = duration / thumbnailCount;
                     logToHTML(`Interval: ${interval}`); // Print the interval
                     thumbnailsContainer.innerHTML = '';
