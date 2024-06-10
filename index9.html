@@ -50,9 +50,10 @@
     </div>
 
     <script>
-         const { createFFmpeg, fetchFile } = FFmpeg;
-        const ffmpeg = createFFmpeg({ log: false });
+      const { createFFmpeg, fetchFile } = FFmpeg;
+        const ffmpeg = createFFmpeg({ log: true });
         let originalFile = null;
+        let ffmpegOutput = '';
 
         document.addEventListener("DOMContentLoaded", function() {
             const uploader = document.getElementById('uploader');
@@ -68,7 +69,6 @@
                 originalFile = files[0];
                 videoElement.src = URL.createObjectURL(originalFile);
 
-                // Use FFmpeg to get the video duration
                 try {
                     if (!ffmpeg.isLoaded()) {
                         message.innerHTML = 'Loading FFmpeg...';
@@ -78,19 +78,31 @@
 
                     await ffmpeg.FS('writeFile', originalFile.name, await fetchFile(originalFile));
 
+                    // Reset ffmpegOutput
+                    ffmpegOutput = '';
+
+                    // Set up FFmpeg logging
+                    ffmpeg.setLogger(({ type, message }) => {
+                        if (type === 'fferr' || type === 'ffout') {
+                            ffmpegOutput += message + '\n';
+                        }
+                    });
+
                     const args = [
-                        '-i', originalFile.name
+                        '-i', originalFile.name,
+                        '-f', 'null',
+                        '-'
                     ];
 
                     logToHTML(`Args: ${args.join(' ')}`); // Log the arguments
 
-                    const response = await ffmpeg.run(...args);
+                    await ffmpeg.run(...args);
 
-                    logToHTML(`FFmpeg Output: ${response}`); // Log the FFmpeg output
+                    logToHTML(`FFmpeg Output: ${ffmpegOutput}`); // Log the FFmpeg output
 
                     // Parse the duration from the FFmpeg output
                     const durationRegex = /Duration: (\d\d:\d\d:\d\d\.\d\d)/;
-                    const durationMatch = response.match(durationRegex);
+                    const durationMatch = ffmpegOutput.match(durationRegex);
 
                     logToHTML(`Duration Match: ${JSON.stringify(durationMatch)}`); // Log the duration match result
 
