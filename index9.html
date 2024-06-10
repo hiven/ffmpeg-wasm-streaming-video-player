@@ -89,10 +89,7 @@
                     });
 
                     const args = [
-                        //'-i', originalFile.name,
                         '-i', originalFile.name
-                        //'-f', 'null',
-                        //'-'
                     ];
 
                     logToHTML(`Args: ${args.join(' ')}`); // Log the arguments
@@ -140,10 +137,16 @@
                     const startTime = new Date(); // Start time
 
                     const args = [
+                        '-skip_frame', interval >= 2 ? 'nokey' : 'default',
                         '-i', originalFile.name,
                         '-vf', `fps=1/${interval},scale=160:90:flags=bilinear`,
-                        '-vsync', 'vfr',
-                        '-q:v', '2',
+                        '-vsync', '2',
+                        '-flags2', 'fast',
+                        '-an',
+                        '-sn',
+                        '-dn',
+                        '-threads', '4', // Use 4 threads
+                        '-f', 'image2',
                         'thumbnail%03d.jpg'
                     ];
 
