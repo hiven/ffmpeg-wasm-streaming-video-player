@@ -133,7 +133,7 @@ width: 100%;
 
                     await ffmpeg.FS('writeFile', originalFile.name, await fetchFile(originalFile));
 
-                    const thumbnailCount = 30;
+                    const thumbnailCount = 60;
                     const interval = duration / thumbnailCount;
                     //logToHTML(`Interval: ${interval}`); // Print the interval
                     thumbnailsContainer.innerHTML = '';
