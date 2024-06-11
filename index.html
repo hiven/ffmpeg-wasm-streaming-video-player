@@ -5,29 +5,26 @@
     <link rel="stylesheet" href="css/style.css">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <style>
-        .container {
-            width: 80%;
-            margin: 0 auto; /* Center the container horizontally */
-        }
-        #video-controls {
-            display: flex;
-            flex-direction: column;
-        }
-        #output-video {
-            width: 100%; /* Set the video width to 100% of its parent container */
-        }
+.container {
+    width: 80%;
+    margin: 0 auto; /* Center the container horizontally */
+}
+
 .thumbnails {
-width: 100%;
+    width: 100%;
     display: flex;
     overflow: hidden;
-    justify-content: space-between;
+    padding: 0; /* Remove any padding */
+    margin: 0; /* Remove any margin */
 }
 
 .thumbnails img {
-    flex: 1 1 calc(100% / 30); /* Each image takes up 1/30th of the container width */
+    width: calc(100% / 30); /* Each image takes up 1/30th of the container width */
     height: 100px;
     object-fit: cover; /* Ensures the image is resized to cover the element */
     object-position: center; /* Centers the image slice */
+    margin: 0; /* Remove any default margin */
+    padding: 0; /* Remove any default padding */
 }
     </style>
 </head>
