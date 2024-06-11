@@ -5,39 +5,52 @@
     <link rel="stylesheet" href="css/style.css">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <style>
-.container {
-    width: 80%;
-    margin: 0 auto; /* Center the container horizontally */
-}
+        .container {
+            width: 80%;
+            margin: 0 auto; /* Center the container horizontally */
+        }
 
-.thumbnails {
-    width: 100%;
-    display: flex;
-    overflow: hidden;
-    padding: 0; /* Remove any padding */
-    margin: 0; /* Remove any margin */
-}
+        .thumbnails {
+            width: 100%;
+            display: flex;
+            overflow: hidden;
+            padding: 0; /* Remove any padding */
+            margin: 0; /* Remove any margin */
+        }
 
         #output-video {
-width: 100%;
-}
+            width: 100%;
+        }
 
-.thumbnails img {
-    width: calc(100% / 60); /* Each image takes up 1/30th of the container width */
-    height: 100px;
-    object-fit: cover; /* Ensures the image is resized to cover the element */
-    object-position: center; /* Centers the image slice */
-    margin: 0; /* Remove any default margin */
-    padding: 0; /* Remove any default padding */
-}
+        .thumbnails img {
+            width: calc(100% / 60); /* Each image takes up 1/30th of the container width */
+            height: 100px;
+            object-fit: cover; /* Ensures the image is resized to cover the element */
+            object-position: center; /* Centers the image slice */
+            margin: 0; /* Remove any default margin */
+            padding: 0; /* Remove any default padding */
+        }
+
+        #preview-image {
+            width: 100%;
+            height: auto;
+        }
     </style>
 </head>
 <body>
     <div class="container">
         <h3>Video Editor</h3>
-        <div id="video-preview">
-            <video id="output-video" loop autoplay playsinline controls class="hidden"></video>
+
+        <!-- Add an image element to show the preview at the top -->
+        <img id="preview-image" src="" alt="Preview Image">
+
+        <!-- Thumbnails container -->
+        <div class="thumbnails" id="thumbnails"></div>
+
+        <div id="video-preview" class="hidden">
+            <video id="output-video" loop autoplay playsinline controls></video>
         </div>
+
         <form action="/upload" method="post" enctype="multipart/form-data" id="uploadForm">
             <div style="margin-bottom: 10px;">
                 <label for="uploader">Upload Video:</label><br>
@@ -46,15 +59,13 @@ width: 100%;
             <button type="submit" id="submitButton">Submit</button>
         </form>
 
-        <div class="thumbnails" id="thumbnails"></div>
-        
         <p id="message"></p>
         <!-- Added div to display console logs -->
         <div id="console-log"></div>
     </div>
 
     <script>
-      const { createFFmpeg, fetchFile } = FFmpeg;
+        const { createFFmpeg, fetchFile } = FFmpeg;
         const ffmpeg = createFFmpeg({ log: true });
         let originalFile = null;
         let ffmpegOutput = '';
@@ -63,6 +74,7 @@ width: 100%;
             const uploader = document.getElementById('uploader');
             const videoElement = document.getElementById('output-video');
             const thumbnailsContainer = document.getElementById('thumbnails');
+            const previewImage = document.getElementById('preview-image');
             const message = document.getElementById('message');
 
             uploader.addEventListener('change', handleFileChange);
@@ -96,17 +108,11 @@ width: 100%;
                         '-i', originalFile.name
                     ];
 
-                    //logToHTML(`Args: ${args.join(' ')}`); // Log the arguments
-
                     await ffmpeg.run(...args);
-
-                    //logToHTML(`FFmpeg Output: ${ffmpegOutput}`); // Log the FFmpeg output
 
                     // Parse the duration from the FFmpeg output
                     const durationRegex = /Duration: (\d\d:\d\d:\d\d\.\d\d)/;
                     const durationMatch = ffmpegOutput.match(durationRegex);
-
-                    //logToHTML(`Duration Match: ${JSON.stringify(durationMatch)}`); // Log the duration match result
 
                     if (durationMatch && durationMatch.length > 1) {
                         const durationString = durationMatch[1];
@@ -124,7 +130,6 @@ width: 100%;
 
             async function generateThumbnails(duration) {
                 try {
-                    //logToHTML(`Duration: ${duration}`); // Print the duration
                     if (!ffmpeg.isLoaded()) {
                         message.innerHTML = 'Loading FFmpeg...';
                         await ffmpeg.load();
@@ -135,7 +140,6 @@ width: 100%;
 
                     const thumbnailCount = 60;
                     const interval = duration / thumbnailCount;
-                    //logToHTML(`Interval: ${interval}`); // Print the interval
                     thumbnailsContainer.innerHTML = '';
 
                     const startTime = new Date(); // Start time
@@ -164,11 +168,20 @@ width: 100%;
                         img.src = URL.createObjectURL(new Blob([data.buffer], { type: 'image/jpeg' }));
                         img.alt = `Thumbnail ${i + 1}`;
                         thumbnailsContainer.appendChild(img);
+
+                        // Add mouseover event listener to change the preview image
+                        img.addEventListener('mouseover', () => {
+                            previewImage.src = img.src;
+                        });
+
+                        // Set the first thumbnail as the preview image initially
+                        if (i === 0) {
+                            previewImage.src = img.src;
+                        }
                     }
 
                     const endTime = new Date(); // End time
                     const timeTaken = (endTime - startTime) / 1000; // Calculate time taken in seconds
-                    //logToHTML(`Time taken: ${timeTaken} seconds`);
 
                     message.innerHTML = 'Thumbnails generated successfully!';
                 } catch (error) {
