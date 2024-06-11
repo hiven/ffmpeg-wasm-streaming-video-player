@@ -143,7 +143,7 @@ width: 100%;
                     const args = [
                         '-skip_frame', interval >= 2 ? 'nokey' : 'default',
                         '-i', originalFile.name,
-                        '-vf', `fps=1/${interval},scale=160:90:flags=bilinear`,
+                        '-vf', `fps=1/${interval}`,
                         '-vsync', '2',
                         '-flags2', 'fast',
                         '-an',
