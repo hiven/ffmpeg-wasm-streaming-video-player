@@ -117,7 +117,7 @@
                     if (durationMatch && durationMatch.length > 1) {
                         const durationString = durationMatch[1];
                         const [hours, minutes, seconds] = durationString.split(':');
-                        const durationInSeconds = parseInt(hours) * 3600 + parseInt(minutes) * 60 + parseFloat(seconds);
+                        const durationInSeconds = Math.floor(parseInt(hours) * 3600 + parseInt(minutes) * 60 + parseFloat(seconds));
                         await generateThumbnails(durationInSeconds);
                     } else {
                         throw new Error('Failed to get video duration');
@@ -145,7 +145,6 @@
                     const startTime = new Date(); // Start time
 
                     const args = [
-                        //'-skip_frame', interval >= 2 ? 'nokey' : 'default',
                         '-i', originalFile.name,
                         '-vf', `fps=1/${interval}`,
                         '-vsync', '2',
