@@ -15,3 +15,33 @@
         }
 
     
+        .container {
+            width: 80%;
+            margin: 0 auto; /* Center the container horizontally */
+        }
+
+        .thumbnails {
+            width: 100%;
+            display: flex;
+            overflow: hidden;
+            padding: 0; /* Remove any padding */
+            margin: 0; /* Remove any margin */
+        }
+
+        #output-video {
+            width: 100%;
+        }
+
+        .thumbnails img {
+            width: calc(100% / 60); /* Each image takes up 1/30th of the container width */
+            height: 100px;
+            object-fit: cover; /* Ensures the image is resized to cover the element */
+            object-position: center; /* Centers the image slice */
+            margin: 0; /* Remove any default margin */
+            padding: 0; /* Remove any default padding */
+        }
+
+        #preview-image {
+            width: 100%;
+            height: auto;
+        }
