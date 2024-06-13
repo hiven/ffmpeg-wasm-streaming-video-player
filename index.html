@@ -145,6 +145,7 @@
                     const startTime = new Date(); // Start time
 
                     const args = [
+                        '-skip_frame', interval >= 2 ? 'nokey' : 'default',
                         '-i', originalFile.name,
                         '-vf', `fps=1/${interval}`,
                         '-vsync', '2',
