@@ -8,6 +8,17 @@
 <body>
     <div class="container">
         <h3>Video Editor</h3>
+
+        <!-- Add an image element to show the preview at the top -->
+        <img id="preview-image" src="" alt="Preview Image">
+
+        <!-- Thumbnails container -->
+        <div class="thumbnails" id="thumbnails"></div>
+
+        <div id="video-preview" class="hidden">
+            <video id="output-video" loop autoplay playsinline controls></video>
+        </div>
+
         <form action="/upload" method="post" enctype="multipart/form-data" id="uploadForm">
             <div style="margin-bottom: 10px;">
                 <label for="uploader">Upload Video:</label><br>
@@ -15,10 +26,6 @@
             </div>
             <button type="submit" id="submitButton">Submit</button>
         </form>
-        <img id="preview-image" src="" alt="Preview Image">
-
-        <!-- Thumbnails container -->
-        <div class="thumbnails" id="thumbnails"></div>
 
         <p id="message"></p>
         <!-- Added div to display console logs -->
