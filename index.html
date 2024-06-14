@@ -95,13 +95,7 @@
 
             async function generateThumbnails(duration) {
                 try {
-                    if (!ffmpeg.isLoaded()) {
-                        message.innerHTML = 'Loading FFmpeg...';
-                        await ffmpeg.load();
-                    }
                     message.innerHTML = 'Generating thumbnails...';
-
-                    await ffmpeg.FS('writeFile', originalFile.name, await fetchFile(originalFile));
 
                     const thumbnailCount = 60;
                     const interval = duration / thumbnailCount;
