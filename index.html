@@ -23,10 +23,6 @@
 
         <!-- Thumbnails container -->
         <div class="thumbnails" id="thumbnails"></div>
-
-        <div id="video-preview" class="hidden">
-            <video id="output-video" loop autoplay playsinline controls></video>
-        </div>
     </div>
 
     <script>
@@ -37,7 +33,6 @@
 
         document.addEventListener("DOMContentLoaded", function() {
             const uploader = document.getElementById('uploader');
-            const videoElement = document.getElementById('output-video');
             const thumbnailsContainer = document.getElementById('thumbnails');
             const previewImage = document.getElementById('preview-image');
             const message = document.getElementById('message');
@@ -45,10 +40,8 @@
             uploader.addEventListener('change', handleFileChange);
 
             async function handleFileChange() {
-                videoElement.classList.remove('hidden');
                 const files = uploader.files;
                 originalFile = files[0];
-                videoElement.src = URL.createObjectURL(originalFile);
 
                 try {
                     if (!ffmpeg.isLoaded()) {
