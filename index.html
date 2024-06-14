@@ -139,6 +139,9 @@
                 } catch (error) {
                     message.innerHTML = `Error: ${error.message}`;
                     console.error(error);
+                } finally {
+                    // Clean up and unload FFmpeg to release memory
+                    ffmpeg.exit();
                 }
             }
 
