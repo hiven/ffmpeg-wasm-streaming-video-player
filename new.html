@@ -182,12 +182,19 @@
         #cancel-button:hover {
             background-color: #5a6268;
         }
+
+        #loading-message {
+            margin-top: 10px;
+            font-size: 14px;
+            color: #777;
+        }
     </style>
     <script src="https://cdn.jsdelivr.net/npm/@ffmpeg/ffmpeg@0.10.0/dist/ffmpeg.min.js"></script>
 </head>
 <body>
     <div class="container" id="top-container">
         <input type="file" id="file-input">
+        <div id="loading-message"></div>
     </div>
 
     <div class="container" id="middle-container">
@@ -249,6 +256,7 @@
         const cancelButton = document.getElementById('cancel-button');
         const downloadButton = document.getElementById('download-button');
         const middleVideo = document.getElementById('bottom-video');
+        const loadingMessage = document.getElementById('loading-message');
 
         const totalDurationElement = document.getElementById('total-duration');
         const startTrimElement = document.getElementById('start-trim');
@@ -267,9 +275,11 @@
 
         fileInput.addEventListener('change', function() {
             if (!isFFmpegLoaded) {
-                alert('FFMPEG WASM is still loading. Please wait a moment and try again.');
+                loadingMessage.textContent = 'Loading Resources...';
                 return;
             }
+
+            loadingMessage.textContent = '';
 
             if (fileInput.files.length > 0) {
                 middleContainer.style.display = 'block';
@@ -286,6 +296,7 @@
                     endTrimElement.textContent = formatTime(duration);
                     initialStartTime = '00:00:00';
                     initialDuration = duration;
+                    sliderControls.style.display = 'block'; // Show trim controls
                 };
                 video.src = objectURL;
             }
@@ -360,13 +371,10 @@
 
         function parseTime(timeString) {
             const parts = timeString.split(':');
-            let totalSeconds = 0;
-            if (parts.length === 3) {
-                totalSeconds += parseInt(parts[0]) * 3600;
-                totalSeconds += parseInt(parts[1]) * 60;
-                totalSeconds += parseInt(parts[2]);
-            }
-            return totalSeconds;
+            const hours = parseInt(parts[0]) || 0;
+            const minutes = parseInt(parts[1]) || 0;
+            const seconds = parseInt(parts[2]) || 0;
+            return hours * 3600 + minutes * 60 + seconds;
         }
     </script>
 </body>
