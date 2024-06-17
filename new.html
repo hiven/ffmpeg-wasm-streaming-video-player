@@ -1,0 +1,337 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Video Trimming App</title>
+    <style>
+        body {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            margin: 0;
+            padding: 0;
+            font-family: Arial, sans-serif;
+            background-color: #f4f4f4;
+        }
+
+        .container {
+            margin: 20px;
+            padding: 20px;
+            border: 1px solid #ccc;
+            border-radius: 10px;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+            width: 80%;
+            max-width: 800px;
+            background-color: white;
+            display: none;
+        }
+
+        #top-container {
+            background-color: #f9f9f9;
+            display: block;
+            text-align: center;
+        }
+
+        #middle-container {
+            background-color: #e9e9e9;
+        }
+
+        .preview-box {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 10px;
+        }
+
+        .preview-image {
+            width: 150px;
+            height: auto;
+            border-radius: 10px;
+        }
+
+        .trim-info {
+            text-align: left;
+            margin-left: 20px;
+        }
+
+        .trim-info .auto-trimmed {
+            background-color: #28a745;
+            color: white;
+            padding: 5px 10px;
+            border-radius: 5px;
+            display: inline-block;
+            margin-bottom: 10px;
+        }
+
+        .trim-info .trim-details {
+            font-size: 14px;
+        }
+
+        .trim-info button {
+            display: block;
+            margin-top: 10px;
+            padding: 5px 10px;
+            font-size: 14px;
+            cursor: pointer;
+            border: none;
+            border-radius: 5px;
+            color: white;
+            background-color: #007BFF;
+            transition: background-color 0.3s;
+        }
+
+        .trim-info button:hover {
+            background-color: #0056b3;
+        }
+
+        .slider-container {
+            margin: 20px 0;
+            text-align: left;
+        }
+
+        .slider-container label {
+            font-weight: bold;
+        }
+
+        .slider-container .label-container {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 10px;
+        }
+
+        .slider-container input[type="range"] {
+            width: 100%;
+        }
+
+        .time-input-container {
+            display: flex;
+            align-items: center;
+        }
+
+        .time-input-container input[type="text"] {
+            width: 150px;
+            margin-left: 5px;
+            padding: 5px;
+            font-size: 14px;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+        }
+
+        #bottom-container {
+            background-color: #d9d9d9;
+            text-align: center;
+        }
+
+        #bottom-video {
+            width: 100%;
+            max-width: 600px;
+            display: block;
+            margin: 0 auto;
+            border-radius: 10px;
+        }
+
+        button {
+            margin-top: 20px;
+            padding: 10px 20px;
+            font-size: 16px;
+            cursor: pointer;
+            border: none;
+            border-radius: 5px;
+            color: white;
+            background-color: #007BFF;
+            transition: background-color 0.3s;
+        }
+
+        button:hover {
+            background-color: #0056b3;
+        }
+
+        #cancel-button {
+            background-color: #6c757d;
+        }
+
+        #cancel-button:hover {
+            background-color: #5a6268;
+        }
+    </style>
+    <script src="https://cdn.jsdelivr.net/npm/@ffmpeg/ffmpeg@0.10.0/dist/ffmpeg.min.js"></script>
+</head>
+<body>
+    <div class="container" id="top-container">
+        <input type="file" id="file-input">
+    </div>
+
+    <div class="container" id="middle-container">
+        <div class="preview-box">
+            <img src="path/to/preview-image.jpg" alt="Video Preview" class="preview-image">
+            <div class="trim-info">
+                <div class="auto-trimmed">Auto Trimmed</div>
+                <div class="trim-details">
+                    <p>Total Duration: <span id="total-duration"></span></p>
+                    <p>Start Trim: <span id="start-trim"></span></p>
+                    <p>End Trim: <span id="end-trim"></span></p>
+                </div>
+                <button id="edit-trim-button">Edit Trim</button>
+            </div>
+        </div>
+        <div id="slider-controls" class="slider-container" style="display: none;">
+            <div class="label-container">
+                <label for="start-time">Start Time:</label>
+                <div class="time-input-container">
+                    <input type="text" id="start-time" placeholder="HH:MM:SS">
+                </div>
+            </div>
+            <input type="range" id="start-time-slider" min="0" value="0">
+            <div class="label-container">
+                <label for="video-length">Video Length:</label>
+                <div class="time-input-container">
+                    <input type="text" id="video-length" placeholder="HH:MM:SS">
+                </div>
+            </div>
+            <input type="range" id="video-length-slider" min="1" value="1">
+            <button id="save-trim-button">Save Trim</button>
+        </div>
+    </div>
+
+    <div class="container" id="bottom-container">
+        <video id="bottom-video" controls>
+            <source src="path/to/video.mp4" type="video/mp4">
+            Your browser does not support the video tag.
+        </video>
+        <button id="download-button">Download</button>
+        <button id="cancel-button">Re-edit</button>
+    </div>
+
+    <script>
+        const { createFFmpeg, fetchFile } = FFmpeg;
+        const ffmpeg = createFFmpeg({ log: true });
+        let isFFmpegLoaded = false;
+
+        // Load FFMPEG WASM as soon as the page loads
+        window.onload = async () => {
+            await ffmpeg.load();
+            isFFmpegLoaded = true;
+        };
+
+        const fileInput = document.getElementById('file-input');
+        const middleContainer = document.getElementById('middle-container');
+        const bottomContainer = document.getElementById('bottom-container');
+        const cancelButton = document.getElementById('cancel-button');
+        const downloadButton = document.getElementById('download-button');
+        const middleVideo = document.getElementById('bottom-video');
+
+        const totalDurationElement = document.getElementById('total-duration');
+        const startTrimElement = document.getElementById('start-trim');
+        const endTrimElement = document.getElementById('end-trim');
+        const editTrimButton = document.getElementById('edit-trim-button');
+        const saveTrimButton = document.getElementById('save-trim-button');
+
+        const sliderControls = document.getElementById('slider-controls');
+        const startTimeInput = document.getElementById('start-time');
+        const videoLengthInput = document.getElementById('video-length');
+        const startTimeSlider = document.getElementById('start-time-slider');
+        const videoLengthSlider = document.getElementById('video-length-slider');
+
+        fileInput.addEventListener('change', function() {
+            if (!isFFmpegLoaded) {
+                alert('FFMPEG WASM is still loading. Please wait a moment and try again.');
+                return;
+            }
+
+            if (fileInput.files.length > 0) {
+                middleContainer.style.display = 'block';
+                const file = fileInput.files[0];
+                const objectURL = URL.createObjectURL(file);
+                middleVideo.src = objectURL;
+
+                // Get video duration
+                const video = document.createElement('video');
+                video.onloadedmetadata = function() {
+                    const duration = video.duration;
+                    totalDurationElement.textContent = formatTime(duration);
+                    startTrimElement.textContent = "00:00:00";
+                    endTrimElement.textContent = formatTime(duration);
+
+                    startTimeSlider.max = duration;
+                    videoLengthSlider.max = duration;
+                    videoLengthSlider.value = duration;
+                };
+                video.src = objectURL;
+            }
+        });
+
+        cancelButton.addEventListener('click', function() {
+            bottomContainer.style.display = 'none';
+        });
+
+        downloadButton.addEventListener('click', function() {
+            const a = document.createElement('a');
+            a.href = 'path/to/video.mp4';  // Replace with the actual path or use dynamic file selection
+            a.download = 'video.mp4';
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+        });
+
+        editTrimButton.addEventListener('click', function() {
+            sliderControls.style.display = 'block';
+        });
+
+        saveTrimButton.addEventListener('click', function() {
+            sliderControls.style.display = 'none';
+            startTrimElement.textContent = startTimeInput.value;
+            endTrimElement.textContent = formatTime(parseTime(startTimeInput.value) + parseTime(videoLengthInput.value));
+        });
+
+        startTimeSlider.addEventListener('input', function() {
+            const totalSeconds = parseInt(startTimeSlider.value);
+            const timeString = formatTime(totalSeconds);
+            startTimeInput.value = timeString;
+        });
+
+        videoLengthSlider.addEventListener('input', function() {
+            const totalSeconds = parseInt(videoLengthSlider.value);
+            const timeString = formatTime(totalSeconds);
+            videoLengthInput.value = timeString;
+        });
+
+        startTimeInput.addEventListener('input', function() {
+            const totalSeconds = parseTime(startTimeInput.value);
+            startTimeSlider.value = totalSeconds;
+        });
+
+        videoLengthInput.addEventListener('input', function() {
+            const totalSeconds = parseTime(videoLengthInput.value);
+            videoLengthSlider.value = totalSeconds;
+        });
+
+        function formatTime(totalSeconds) {
+            const hours = Math.floor(totalSeconds / 3600);
+            const minutes = Math.floor((totalSeconds % 3600) / 60);
+            const seconds = Math.floor(totalSeconds % 60);
+            return `${pad(hours)}:${pad(minutes)}:${pad(seconds)}`;
+        }
+
+        function pad(number) {
+            if (number < 10) {
+                return '0' + number;
+            }
+            return number;
+        }
+
+        function parseTime(timeString) {
+            const parts = timeString.split(':');
+            let totalSeconds = 0;
+            if (parts.length === 3) {
+                totalSeconds += parseInt(parts[0]) * 3600;
+                totalSeconds += parseInt(parts[1]) * 60;
+                totalSeconds += parseInt(parts[2]);
+            }
+            return totalSeconds;
+        }
+    </script>
+</body>
+</html>
