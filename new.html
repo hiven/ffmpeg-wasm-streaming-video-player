@@ -120,6 +120,32 @@
             border-radius: 5px;
         }
 
+        .slider-controls button {
+            display: inline-block;
+            margin-top: 10px;
+            padding: 5px 10px;
+            font-size: 14px;
+            cursor: pointer;
+            border: none;
+            border-radius: 5px;
+            color: white;
+            background-color: #007BFF;
+            transition: background-color 0.3s;
+            margin-right: 10px;
+        }
+
+        .slider-controls button:hover {
+            background-color: #0056b3;
+        }
+
+        #cancel-trim-button {
+            background-color: #6c757d;
+        }
+
+        #cancel-trim-button:hover {
+            background-color: #5a6268;
+        }
+
         #bottom-container {
             background-color: #d9d9d9;
             text-align: center;
@@ -177,7 +203,7 @@
                 <button id="edit-trim-button">Edit Trim</button>
             </div>
         </div>
-        <div id="slider-controls" class="slider-container" style="display: none;">
+        <div id="slider-controls" class="slider-controls" style="display: none;">
             <div class="label-container">
                 <label for="start-time">Start Time:</label>
                 <div class="time-input-container">
@@ -193,6 +219,7 @@
             </div>
             <input type="range" id="video-length-slider" min="1" value="1">
             <button id="save-trim-button">Save Trim</button>
+            <button id="cancel-trim-button">Cancel</button>
         </div>
     </div>
 
@@ -228,12 +255,15 @@
         const endTrimElement = document.getElementById('end-trim');
         const editTrimButton = document.getElementById('edit-trim-button');
         const saveTrimButton = document.getElementById('save-trim-button');
+        const cancelTrimButton = document.getElementById('cancel-trim-button');
 
         const sliderControls = document.getElementById('slider-controls');
         const startTimeInput = document.getElementById('start-time');
         const videoLengthInput = document.getElementById('video-length');
         const startTimeSlider = document.getElementById('start-time-slider');
         const videoLengthSlider = document.getElementById('video-length-slider');
+
+        let initialStartTime, initialDuration;
 
         fileInput.addEventListener('change', function() {
             if (!isFFmpegLoaded) {
@@ -252,12 +282,10 @@
                 video.onloadedmetadata = function() {
                     const duration = video.duration;
                     totalDurationElement.textContent = formatTime(duration);
-                    startTrimElement.textContent = "00:00:00";
+                    startTrimElement.textContent = '00:00:00';
                     endTrimElement.textContent = formatTime(duration);
-
-                    startTimeSlider.max = duration;
-                    videoLengthSlider.max = duration;
-                    videoLengthSlider.value = duration;
+                    initialStartTime = '00:00:00';
+                    initialDuration = duration;
                 };
                 video.src = objectURL;
             }
@@ -284,6 +312,14 @@
             sliderControls.style.display = 'none';
             startTrimElement.textContent = startTimeInput.value;
             endTrimElement.textContent = formatTime(parseTime(startTimeInput.value) + parseTime(videoLengthInput.value));
+        });
+
+        cancelTrimButton.addEventListener('click', function() {
+            sliderControls.style.display = 'none';
+            startTimeInput.value = initialStartTime;
+            videoLengthInput.value = formatTime(initialDuration);
+            startTimeSlider.value = parseTime(initialStartTime);
+            videoLengthSlider.value = initialDuration;
         });
 
         startTimeSlider.addEventListener('input', function() {
