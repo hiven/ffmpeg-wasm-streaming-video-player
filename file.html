@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>FFmpeg WASM Loader</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      height: 100vh;
+      margin: 0;
+    }
+
+    .container {
+      text-align: center;
+    }
+
+    #statusBox {
+      margin-top: 20px;
+      padding: 10px;
+      border: 1px solid #ccc;
+      border-radius: 5px;
+    }
+
+    .hidden {
+      display: none;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>FFmpeg WASM Loader</h1>
+    <input type="file" id="fileInput">
+    <div id="statusBox" class="hidden">Loading...</div>
+  </div>
+  <script src="https://cdn.jsdelivr.net/npm/@ffmpeg/ffmpeg@0.9.8"></script>
+  <script>
+    const { createFFmpeg, fetchFile } = FFmpeg;
+    const ffmpeg = createFFmpeg({ log: true });
+
+    const fileInput = document.getElementById('fileInput');
+    const statusBox = document.getElementById('statusBox');
+
+    const checkFFmpegLoaded = async () => {
+      if (!ffmpeg.isLoaded()) {
+        console.log('FFmpeg is not loaded. Loading FFmpeg...');
+        statusBox.innerText = 'Loading...';
+        await ffmpeg.load();
+        console.log('FFmpeg loaded.');
+      }
+      statusBox.innerText = 'Loaded';
+    };
+
+    fileInput.addEventListener('change', async () => {
+      if (fileInput.files.length > 0) {
+        console.log('File selected:', fileInput.files[0].name);
+        statusBox.classList.remove('hidden');
+        await checkFFmpegLoaded();
+      }
+    });
+
+    (async () => {
+      await ffmpeg.load();
+      console.log('Initial FFmpeg load complete.');
+    })();
+  </script>
+</body>
+</html>
