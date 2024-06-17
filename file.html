@@ -46,16 +46,16 @@
 
     const checkFFmpegLoaded = async () => {
       if (!ffmpeg.isLoaded()) {
-        statusBox.innerText = 'Loading...';
         await ffmpeg.load();
       }
       statusBox.innerText = 'Loaded';
     };
 
-    fileInput.addEventListener('change', async () => {
+    fileInput.addEventListener('change', () => {
       if (fileInput.files.length > 0) {
         statusBox.classList.remove('hidden');
-        await checkFFmpegLoaded();
+        statusBox.innerText = 'Loading...';
+        checkFFmpegLoaded();
       }
     });
 
