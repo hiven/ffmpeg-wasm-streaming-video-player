@@ -25,13 +25,15 @@
         }
         #thumbnailContainer {
             margin-top: 20px;
-            max-width: 50%; /* Limit thumbnail width to 50% of the container */
-            position: relative; /* Ensure "Auto Trimmed" text is positioned relative to this container */
             display: flex;
         }
         #thumbnail {
-            max-width: 100%; /* Ensure thumbnail itself does not exceed its container */
+            max-width: 100%;
             display: block;
+        }
+        #thumbnailWrapper {
+            position: relative;
+            max-width: 50%; /* Limit thumbnail width to 50% of the container */
         }
         #trimmedText, #durationText {
             position: absolute;
@@ -40,7 +42,7 @@
             padding: 5px;
             font-size: 12px;
             border-radius: 5px;
-            display: none; /* Initially hide "Auto Trimmed" text */
+            display: none; /* Initially hide text */
         }
         #trimmedText {
             top: 5px; /* Adjust top position as needed */
@@ -50,9 +52,21 @@
             bottom: 5px; /* Adjust bottom position as needed */
             right: 5px; /* Adjust right position as needed */
         }
-        #additionalText {
+        #infoContainer {
             margin-left: 20px;
             width: 50%;
+        }
+        #infoContainer input[type="text"] {
+            margin-top: 10px;
+            display: block;
+            width: calc(100% - 22px); /* Adjust for padding and border */
+            padding: 10px;
+            font-size: 14px;
+        }
+        #editButton {
+            margin-top: 10px;
+            padding: 10px 20px;
+            font-size: 14px;
         }
     </style>
 </head>
@@ -63,12 +77,17 @@
         <div id="status">Loading...</div>
         <div id="output"></div>
         <div id="thumbnailContainer">
-            <div style="position: relative;">
+            <div id="thumbnailWrapper">
                 <img id="thumbnail" src="" alt="Thumbnail" />
                 <div id="trimmedText">Auto Trimmed</div>
                 <div id="durationText">0s</div>
             </div>
-            <textarea id="additionalText" placeholder="Additional text here..."></textarea>
+            <div id="infoContainer">
+                <p id="originalDuration">Original Duration: 0s</p>
+                <input type="text" id="inputBox1" placeholder="Input Box 1">
+                <input type="text" id="inputBox2" placeholder="Input Box 2">
+                <button id="editButton">Edit</button>
+            </div>
         </div>
     </div>
 
@@ -141,6 +160,7 @@
                     // Update duration text
                     document.getElementById('durationText').innerText = `${durationInSeconds.toFixed(2)}s`;
                     document.getElementById('durationText').style.display = 'block';
+                    document.getElementById('originalDuration').innerText = `Original Duration: ${durationInSeconds.toFixed(2)}s`;
 
                     // Show "Auto Trimmed" text if duration is greater than 60 seconds
                     if (durationInSeconds > 60) {
