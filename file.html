@@ -70,28 +70,43 @@
             const output = document.getElementById('output');
             output.innerText = 'Processing...';
 
-            const fileData = await fetchFile(file);
-            ffmpeg.FS('writeFile', 'input.mp4', fileData);
+            try {
+                // Write file to FFmpeg virtual file system
+                const fileData = await fetchFile(file);
+                await ffmpeg.FS('writeFile', file.name, fileData);
 
-            // Get video metadata
-            let metadata = '';
-            ffmpeg.setLogger(({ type, message }) => {
-                if (type === 'fferr' || type === 'ffout') {
-                    metadata += message + '\n';
+                // Reset ffmpegOutput
+                let ffmpegOutput = '';
+
+                // Set up FFmpeg logging
+                ffmpeg.setLogger(({ type, message }) => {
+                    if (type === 'fferr' || type === 'ffout') {
+                        ffmpegOutput += message + '\n';
+                    }
+                });
+
+                // Run FFmpeg command to get video duration
+                const args = ['-i', file.name];
+                await ffmpeg.run(...args);
+
+                // Parse the duration from the FFmpeg output
+                const durationRegex = /Duration: (\d\d:\d\d:\d\d\.\d\d)/;
+                const durationMatch = ffmpegOutput.match(durationRegex);
+
+                if (durationMatch && durationMatch.length > 1) {
+                    const durationString = durationMatch[1];
+                    const [hours, minutes, seconds] = durationString.split(':');
+                    const durationInSeconds = Math.floor(parseInt(hours) * 3600 + parseInt(minutes) * 60 + parseFloat(seconds));
+                    output.innerText = `Video duration: ${durationInSeconds.toFixed(2)} seconds`;
+                } else {
+                    throw new Error('Failed to get video duration');
                 }
-            });
-
-            await ffmpeg.run('-i', 'input.mp4');
-
-            // Extract duration from metadata
-            const durationRegex = /Duration: (\d{2}):(\d{2}):(\d{2})\.(\d{2})/;
-            const durationMatch = metadata.match(durationRegex);
-            if (durationMatch) {
-                const [hours, minutes, seconds, milliseconds] = durationMatch.slice(1).map(Number);
-                const durationInSeconds = hours * 3600 + minutes * 60 + seconds + milliseconds / 100;
-                output.innerText = `Video duration: ${durationInSeconds.toFixed(2)} seconds`;
-            } else {
-                output.innerText = 'Failed to extract video duration.';
+            } catch (error) {
+                output.innerText = `Error: ${error.message}`;
+                console.error(error);
+            } finally {
+                // Clean up and unload FFmpeg to release memory
+                ffmpeg.exit();
             }
         });
     </script>
