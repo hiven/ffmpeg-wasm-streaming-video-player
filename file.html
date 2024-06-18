@@ -28,29 +28,31 @@
 
     <script src="https://cdn.jsdelivr.net/npm/@ffmpeg/ffmpeg@0.11.8/dist/ffmpeg.min.js"></script>
     <script>
-        const { createFFmpeg, fetchFile } = FFmpeg;
-        const ffmpeg = createFFmpeg({ log: true });
+        document.addEventListener("DOMContentLoaded", async () => {
+            const { createFFmpeg, fetchFile } = FFmpeg;
+            const ffmpeg = createFFmpeg({ log: true });
 
-        const loadFFMPEG = async () => {
-            if (!ffmpeg.isLoaded()) {
-                await ffmpeg.load();
-            }
-        };
+            const loadFFMPEG = async () => {
+                if (!ffmpeg.isLoaded()) {
+                    await ffmpeg.load();
+                }
+            };
 
-        document.getElementById('fileInput').addEventListener('change', async () => {
-            document.getElementById('uploadBox').style.display = 'block';
+            document.getElementById('fileInput').addEventListener('change', async () => {
+                document.getElementById('uploadBox').style.display = 'block';
 
-            if (ffmpeg.isLoaded()) {
-                document.getElementById('status').innerText = 'Loaded';
-            } else {
-                document.getElementById('status').innerText = 'Loading...';
-                await loadFFMPEG();
-                document.getElementById('status').innerText = 'Loaded';
-            }
+                if (ffmpeg.isLoaded()) {
+                    document.getElementById('status').innerText = 'Loaded';
+                } else {
+                    document.getElementById('status').innerText = 'Loading...';
+                    await loadFFMPEG();
+                    document.getElementById('status').innerText = 'Loaded';
+                }
+            });
+
+            // Preload FFMPEGWASM as soon as the page loads
+            await loadFFMPEG();
         });
-
-        // Preload FFMPEGWASM as soon as the page loads
-        loadFFMPEG();
     </script>
 </body>
 </html>
