@@ -59,11 +59,11 @@
 
             document.getElementById('uploadBox').style.display = 'block';
 
-            if (ffmpeg.isLoaded()) {
-                document.getElementById('status').innerText = 'Loaded';
-            } else {
+            if (!ffmpeg.isLoaded()) {
                 document.getElementById('status').innerText = 'Loading...';
                 await loadFFMPEG();
+                document.getElementById('status').innerText = 'Loaded';
+            } else {
                 document.getElementById('status').innerText = 'Loaded';
             }
 
@@ -104,9 +104,6 @@
             } catch (error) {
                 output.innerText = `Error: ${error.message}`;
                 console.error(error);
-            } finally {
-                // Clean up and unload FFmpeg to release memory
-                ffmpeg.exit();
             }
         });
     </script>
