@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Video Duration Extractor</title>
+    <title>Video Duration Extractor with Thumbnail</title>
     <style>
         body {
             font-family: Arial, sans-serif;
@@ -23,14 +23,20 @@
             border: 1px solid #ccc;
             white-space: pre-wrap;
         }
+        #thumbnail {
+            margin-top: 20px;
+            max-width: 100%;
+            display: none; /* Initially hide the thumbnail */
+        }
     </style>
 </head>
 <body>
-    <h1>Upload a File</h1>
+    <h1>Upload a Video File</h1>
     <input type="file" id="fileInput">
     <div id="uploadBox" style="display: none;">
         <div id="status">Loading...</div>
         <div id="output"></div>
+        <img id="thumbnail" src="" alt="Thumbnail" />
     </div>
 
     <script src="https://cdn.jsdelivr.net/npm/@ffmpeg/ffmpeg@0.11.2/dist/ffmpeg.min.js"></script>
@@ -98,6 +104,9 @@
                     const [hours, minutes, seconds] = durationString.split(':');
                     const durationInSeconds = Math.floor(parseInt(hours) * 3600 + parseInt(minutes) * 60 + parseFloat(seconds));
                     output.innerText = `Video duration: ${durationInSeconds.toFixed(2)} seconds`;
+
+                    // Generate thumbnail for the first frame
+                    await generateThumbnail(file.name);
                 } else {
                     throw new Error('Failed to get video duration');
                 }
@@ -106,6 +115,27 @@
                 console.error(error);
             }
         });
+
+        async function generateThumbnail(inputFile) {
+            const thumbnailImg = document.getElementById('thumbnail');
+
+            // Run FFmpeg command to generate thumbnail
+            const args = [
+                '-i', inputFile,
+                '-ss', '00:00:01', // Seek to the 1st second
+                '-vframes', '1',   // Capture only 1 frame
+                '-q:v', '2',       // Quality: 2 (high quality)
+                '-f', 'image2',
+                'thumbnail.jpg'
+            ];
+
+            await ffmpeg.run(...args);
+
+            // Read the generated thumbnail image from FFmpeg's virtual file system
+            const thumbnailData = ffmpeg.FS('readFile', 'thumbnail.jpg');
+            thumbnailImg.src = URL.createObjectURL(new Blob([thumbnailData.buffer], { type: 'image/jpeg' }));
+            thumbnailImg.style.display = 'block'; // Show the thumbnail
+        }
     </script>
 </body>
 </html>
