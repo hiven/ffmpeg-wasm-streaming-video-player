@@ -63,10 +63,13 @@
             padding: 10px;
             font-size: 14px;
         }
-        #editButton {
+        #editButton, #saveButton, #cancelButton {
             margin-top: 10px;
             padding: 10px 20px;
             font-size: 14px;
+        }
+        #inputContainer {
+            display: none;
         }
     </style>
 </head>
@@ -86,8 +89,12 @@
                 <p id="originalDuration">Original Duration: 0s</p>
                 <p id="startTrim">Start Trim Position: 00:00:00</p>
                 <p id="endTrim">End Trim Position: 00:00:00</p>
-                <input type="text" id="inputBox1" value="00:00:00" pattern="\d{2}:\d{2}:\d{2}" placeholder="00:00:00">
-                <input type="number" id="inputBox2" min="10" max="60" step="1" value="10" placeholder="10">
+                <div id="inputContainer">
+                    <input type="text" id="inputBox1" value="00:00:00" pattern="\d{2}:\d{2}:\d{2}" placeholder="00:00:00">
+                    <input type="text" id="inputBox2" value="00:00:00" pattern="\d{2}:\d{2}:\d{2}" placeholder="00:00:00">
+                    <button id="saveButton">Save</button>
+                    <button id="cancelButton">Cancel</button>
+                </div>
                 <button id="editButton">Edit Trim</button>
             </div>
         </div>
@@ -131,25 +138,20 @@
             output.innerText = 'Processing...';
 
             try {
-                // Write file to FFmpeg virtual file system
                 const fileData = await fetchFile(file);
                 await ffmpeg.FS('writeFile', file.name, fileData);
 
-                // Reset ffmpegOutput
                 let ffmpegOutput = '';
 
-                // Set up FFmpeg logging
                 ffmpeg.setLogger(({ type, message }) => {
                     if (type === 'fferr' || type === 'ffout') {
                         ffmpegOutput += message + '\n';
                     }
                 });
 
-                // Run FFmpeg command to get video duration
                 const args = ['-i', file.name];
                 await ffmpeg.run(...args);
 
-                // Parse the duration from the FFmpeg output
                 const durationRegex = /Duration: (\d\d:\d\d:\d\d\.\d\d)/;
                 const durationMatch = ffmpegOutput.match(durationRegex);
 
@@ -159,23 +161,19 @@
                     const durationInSeconds = Math.floor(parseInt(hours) * 3600 + parseInt(minutes) * 60 + parseFloat(seconds));
                     output.innerText = `Video duration: ${durationInSeconds.toFixed(2)} seconds`;
 
-                    // Update duration text
                     document.getElementById('durationText').innerText = `${durationInSeconds.toFixed(2)}s`;
                     document.getElementById('durationText').style.display = 'block';
                     document.getElementById('originalDuration').innerText = `Original Duration: ${durationInSeconds.toFixed(2)}s`;
 
-                    // Set initial trim positions
                     document.getElementById('startTrim').innerText = `Start Trim Position: 00:00:00`;
                     document.getElementById('endTrim').innerText = `End Trim Position: ${new Date(durationInSeconds * 1000).toISOString().substr(11, 8)}`;
 
-                    // Show "Auto Trimmed" text if duration is greater than 60 seconds
                     if (durationInSeconds > 60) {
                         document.getElementById('trimmedText').style.display = 'block';
                     } else {
                         document.getElementById('trimmedText').style.display = 'none';
                     }
 
-                    // Generate thumbnail for the first frame
                     await generateThumbnail(file.name);
                 } else {
                     throw new Error('Failed to get video duration');
@@ -189,22 +187,41 @@
         async function generateThumbnail(inputFile) {
             const thumbnailImg = document.getElementById('thumbnail');
 
-            // Run FFmpeg command to generate thumbnail
             const args = [
                 '-i', inputFile,
-                '-ss', '00:00:01', // Seek to the 1st second
-                '-vframes', '1',   // Capture only 1 frame
-                '-q:v', '2',       // Quality: 2 (high quality)
+                '-ss', '00:00:01',
+                '-vframes', '1',
+                '-q:v', '2',
                 '-f', 'image2',
                 'thumbnail.jpg'
             ];
 
             await ffmpeg.run(...args);
 
-            // Read the generated thumbnail image from FFmpeg's virtual file system
             const thumbnailData = ffmpeg.FS('readFile', 'thumbnail.jpg');
             thumbnailImg.src = URL.createObjectURL(new Blob([thumbnailData.buffer], { type: 'image/jpeg' }));
         }
+
+        document.getElementById('editButton').addEventListener('click', () => {
+            document.getElementById('inputContainer').style.display = 'block';
+            document.getElementById('editButton').style.display = 'none';
+        });
+
+        document.getElementById('cancelButton').addEventListener('click', () => {
+            document.getElementById('inputContainer').style.display = 'none';
+            document.getElementById('editButton').style.display = 'block';
+        });
+
+        document.getElementById('saveButton').addEventListener('click', () => {
+            const startTrim = document.getElementById('inputBox1').value;
+            const endTrim = document.getElementById('inputBox2').value;
+
+            document.getElementById('startTrim').innerText = `Start Trim Position: ${startTrim}`;
+            document.getElementById('endTrim').innerText = `End Trim Position: ${endTrim}`;
+
+            document.getElementById('inputContainer').style.display = 'none';
+            document.getElementById('editButton').style.display = 'block';
+        });
     </script>
 </body>
 </html>
