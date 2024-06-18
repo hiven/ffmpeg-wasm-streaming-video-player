@@ -56,8 +56,11 @@
             margin-left: 20px;
             width: 50%;
         }
-        #infoContainer input[type="text"] {
+        #infoContainer p {
             margin-top: 10px;
+            font-size: 14px;
+        }
+        #infoContainer input[type="text"] {
             display: block;
             width: calc(100% - 22px);
             padding: 10px;
@@ -86,7 +89,7 @@
                 <div id="durationText">0s</div>
             </div>
             <div id="infoContainer">
-                <p id="originalDuration">Original Duration: 0s</p>
+                <p id="originalDuration">Original Duration: 00:00:00</p>
                 <p id="startTrim">Start Trim Position: 00:00:00</p>
                 <p id="endTrim">End Trim Position: 00:00:00</p>
                 <div id="inputContainer">
@@ -159,14 +162,14 @@
                     const durationString = durationMatch[1];
                     const [hours, minutes, seconds] = durationString.split(':');
                     const durationInSeconds = Math.floor(parseInt(hours) * 3600 + parseInt(minutes) * 60 + parseFloat(seconds));
-                    output.innerText = `Video duration: ${durationInSeconds.toFixed(2)} seconds`;
+                    output.innerText = `Video duration: ${formatDuration(durationInSeconds)}`;
 
-                    document.getElementById('durationText').innerText = `${durationInSeconds.toFixed(2)}s`;
+                    document.getElementById('durationText').innerText = `${formatDuration(durationInSeconds)}`;
                     document.getElementById('durationText').style.display = 'block';
-                    document.getElementById('originalDuration').innerText = `Original Duration: ${durationInSeconds.toFixed(2)}s`;
+                    document.getElementById('originalDuration').innerText = `Original Duration: ${formatDuration(durationInSeconds)}`;
 
                     document.getElementById('startTrim').innerText = `Start Trim Position: 00:00:00`;
-                    document.getElementById('endTrim').innerText = `End Trim Position: ${new Date(durationInSeconds * 1000).toISOString().substr(11, 8)}`;
+                    document.getElementById('endTrim').innerText = `End Trim Position: ${formatTime(durationInSeconds)}`;
 
                     if (durationInSeconds > 60) {
                         document.getElementById('trimmedText').style.display = 'block';
@@ -200,6 +203,21 @@
 
             const thumbnailData = ffmpeg.FS('readFile', 'thumbnail.jpg');
             thumbnailImg.src = URL.createObjectURL(new Blob([thumbnailData.buffer], { type: 'image/jpeg' }));
+        }
+
+        function formatDuration(seconds) {
+            const hours = Math.floor(seconds / 3600);
+            const minutes = Math.floor((seconds % 3600) / 60);
+            const secs = Math.floor(seconds % 60);
+            return `${pad(hours)}:${pad(minutes)}:${pad(secs)}`;
+        }
+
+        function formatTime(seconds) {
+            return new Date(seconds * 1000).toISOString().substr(11, 8);
+        }
+
+        function pad(num) {
+            return num.toString().padStart(2, '0');
         }
 
         document.getElementById('editButton').addEventListener('click', () => {
