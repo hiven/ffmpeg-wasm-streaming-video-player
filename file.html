@@ -17,6 +17,12 @@
             padding: 10px;
             border: 1px solid #ccc;
         }
+        #output {
+            margin-top: 10px;
+            padding: 10px;
+            border: 1px solid #ccc;
+            white-space: pre-wrap; /* Preserve whitespace and newlines */
+        }
     </style>
 </head>
 <body>
@@ -24,6 +30,7 @@
     <input type="file" id="fileInput">
     <div id="uploadBox" style="display: none;">
         <div id="status">Loading...</div>
+        <div id="output"></div>
     </div>
 
     <script src="https://cdn.jsdelivr.net/npm/@ffmpeg/ffmpeg@0.11.2/dist/ffmpeg.min.js"></script>
@@ -44,7 +51,12 @@
             await loadFFMPEG();
         });
 
-        document.getElementById('fileInput').addEventListener('change', async () => {
+        document.getElementById('fileInput').addEventListener('change', async (event) => {
+            const file = event.target.files[0];
+            if (!file) {
+                return;
+            }
+
             document.getElementById('uploadBox').style.display = 'block';
 
             if (ffmpeg.isLoaded()) {
@@ -54,6 +66,18 @@
                 await loadFFMPEG();
                 document.getElementById('status').innerText = 'Loaded';
             }
+
+            const output = document.getElementById('output');
+            output.innerText = 'Processing...';
+
+            const fileData = await fetchFile(file);
+
+            // Simple FFMPEG command: Get file info
+            ffmpeg.FS('writeFile', 'input', fileData);
+            await ffmpeg.run('-i', 'input');
+            const data = ffmpeg.FS('readFile', 'input');
+
+            output.innerText = `File info:\n${new TextDecoder().decode(data)}`;
         });
     </script>
 </body>
