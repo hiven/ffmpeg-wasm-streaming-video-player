@@ -63,6 +63,20 @@
             padding: 10px;
             font-size: 14px;
         }
+        #inputBox1 {
+            margin-top: 10px;
+            display: block;
+            width: calc(100% - 22px);
+            padding: 10px;
+            font-size: 14px;
+        }
+        #inputBox2 {
+            margin-top: 10px;
+            display: block;
+            width: calc(100% - 22px);
+            padding: 10px;
+            font-size: 14px;
+        }
         #editButton {
             margin-top: 10px;
             padding: 10px 20px;
@@ -84,8 +98,8 @@
             </div>
             <div id="infoContainer">
                 <p id="originalDuration">Original Duration: 0s</p>
-                <input type="text" id="inputBox1" placeholder="Input Box 1">
-                <input type="text" id="inputBox2" placeholder="Input Box 2">
+                <input type="text" id="inputBox1" value="00:00:00" pattern="\d{2}:\d{2}:\d{2}" placeholder="00:00:00">
+                <input type="number" id="inputBox2" min="10" max="60" step="1" value="10" placeholder="10">
                 <button id="editButton">Edit</button>
             </div>
         </div>
