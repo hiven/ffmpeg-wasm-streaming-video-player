@@ -162,7 +162,7 @@
                     const durationString = durationMatch[1];
                     const [hours, minutes, seconds] = durationString.split(':');
                     const durationInSeconds = Math.floor(parseInt(hours) * 3600 + parseInt(minutes) * 60 + parseFloat(seconds));
-                    output.innerText = `Video duration: ${formatDuration(durationInSeconds)}`;
+                    output.innerText = `Processed`;
 
                     document.getElementById('durationText').innerText = `${formatDuration(durationInSeconds)}`;
                     document.getElementById('durationText').style.display = 'block';
