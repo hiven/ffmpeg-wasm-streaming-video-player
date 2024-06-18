@@ -1,67 +1,56 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>FFmpeg WASM Loader</title>
-  <style>
-    body {
-      font-family: Arial, sans-serif;
-      display: flex;
-      justify-content: center;
-      align-items: center;
-      height: 100vh;
-      margin: 0;
-    }
-
-    .container {
-      text-align: center;
-    }
-
-    #statusBox {
-      margin-top: 20px;
-      padding: 10px;
-      border: 1px solid #ccc;
-      border-radius: 5px;
-    }
-
-    .hidden {
-      display: none;
-    }
-  </style>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>FFMPEGWASM File Upload</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            padding: 20px;
+        }
+        #uploadBox {
+            margin-top: 20px;
+        }
+        #status {
+            margin-top: 10px;
+            padding: 10px;
+            border: 1px solid #ccc;
+        }
+    </style>
 </head>
 <body>
-  <div class="container">
-    <h1>FFmpeg WASM Loader</h1>
+    <h1>Upload a File</h1>
     <input type="file" id="fileInput">
-    <div id="statusBox" class="hidden">Loading...</div>
-  </div>
-  <script src="https://cdn.jsdelivr.net/npm/@ffmpeg/ffmpeg@0.9.8"></script>
-  <script>
-    const { createFFmpeg, fetchFile } = FFmpeg;
-    const ffmpeg = createFFmpeg({ log: true });
+    <div id="uploadBox" style="display: none;">
+        <div id="status">Loading...</div>
+    </div>
 
-    const fileInput = document.getElementById('fileInput');
-    const statusBox = document.getElementById('statusBox');
+    <script src="https://cdn.jsdelivr.net/npm/@ffmpeg/ffmpeg@0.11.8/dist/ffmpeg.min.js"></script>
+    <script>
+        const { createFFmpeg, fetchFile } = FFmpeg;
+        const ffmpeg = createFFmpeg({ log: true });
 
-    const checkFFmpegLoaded = async () => {
-      if (!ffmpeg.isLoaded()) {
-        await ffmpeg.load();
-      }
-      statusBox.innerText = 'Loaded';
-    };
+        const loadFFMPEG = async () => {
+            if (!ffmpeg.isLoaded()) {
+                await ffmpeg.load();
+            }
+        };
 
-    fileInput.addEventListener('change', () => {
-      if (fileInput.files.length > 0) {
-        statusBox.classList.remove('hidden');
-        statusBox.innerText = 'Loading...';
-        checkFFmpegLoaded();
-      }
-    });
+        document.getElementById('fileInput').addEventListener('change', async () => {
+            document.getElementById('uploadBox').style.display = 'block';
 
-    (async () => {
-      await ffmpeg.load();
-    })();
-  </script>
+            if (ffmpeg.isLoaded()) {
+                document.getElementById('status').innerText = 'Loaded';
+            } else {
+                document.getElementById('status').innerText = 'Loading...';
+                await loadFFMPEG();
+                document.getElementById('status').innerText = 'Loaded';
+            }
+        });
+
+        // Preload FFMPEGWASM as soon as the page loads
+        loadFFMPEG();
+    </script>
 </body>
 </html>
