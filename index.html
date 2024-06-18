@@ -33,7 +33,7 @@
         }
         #thumbnailWrapper {
             position: relative;
-            max-width: 50%; /* Limit thumbnail width to 50% of the container */
+            max-width: 50%;
         }
         #trimmedText, #durationText {
             position: absolute;
@@ -42,35 +42,21 @@
             padding: 5px;
             font-size: 12px;
             border-radius: 5px;
-            display: none; /* Initially hide text */
+            display: none;
         }
         #trimmedText {
-            top: 5px; /* Adjust top position as needed */
-            right: 5px; /* Adjust right position as needed */
+            top: 5px;
+            right: 5px;
         }
         #durationText {
-            bottom: 5px; /* Adjust bottom position as needed */
-            right: 5px; /* Adjust right position as needed */
+            bottom: 5px;
+            right: 5px;
         }
         #infoContainer {
             margin-left: 20px;
             width: 50%;
         }
         #infoContainer input[type="text"] {
-            margin-top: 10px;
-            display: block;
-            width: calc(100% - 22px); /* Adjust for padding and border */
-            padding: 10px;
-            font-size: 14px;
-        }
-        #inputBox1 {
-            margin-top: 10px;
-            display: block;
-            width: calc(100% - 22px);
-            padding: 10px;
-            font-size: 14px;
-        }
-        #inputBox2 {
             margin-top: 10px;
             display: block;
             width: calc(100% - 22px);
@@ -98,6 +84,8 @@
             </div>
             <div id="infoContainer">
                 <p id="originalDuration">Original Duration: 0s</p>
+                <p id="startTrim">Start Trim Position: 00:00:00</p>
+                <p id="endTrim">End Trim Position: 00:00:00</p>
                 <input type="text" id="inputBox1" value="00:00:00" pattern="\d{2}:\d{2}:\d{2}" placeholder="00:00:00">
                 <input type="number" id="inputBox2" min="10" max="60" step="1" value="10" placeholder="10">
                 <button id="editButton">Edit Trim</button>
@@ -175,6 +163,10 @@
                     document.getElementById('durationText').innerText = `${durationInSeconds.toFixed(2)}s`;
                     document.getElementById('durationText').style.display = 'block';
                     document.getElementById('originalDuration').innerText = `Original Duration: ${durationInSeconds.toFixed(2)}s`;
+
+                    // Set initial trim positions
+                    document.getElementById('startTrim').innerText = `Start Trim Position: 00:00:00`;
+                    document.getElementById('endTrim').innerText = `End Trim Position: ${new Date(durationInSeconds * 1000).toISOString().substr(11, 8)}`;
 
                     // Show "Auto Trimmed" text if duration is greater than 60 seconds
                     if (durationInSeconds > 60) {
