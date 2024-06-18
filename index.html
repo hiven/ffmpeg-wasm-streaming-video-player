@@ -169,7 +169,7 @@
                     document.getElementById('originalDuration').innerText = `Original Duration: ${formatDuration(durationInSeconds)}`;
 
                     document.getElementById('startTrim').innerText = `Start Trim Position: 00:00:00`;
-                    document.getElementById('endTrim').innerText = `End Trim Position: ${formatDuration(durationInSeconds)}`;
+                    document.getElementById('endTrim').innerText = `End Trim Position: ${formatTime(durationInSeconds)}`;
 
                     if (durationInSeconds > 60) {
                         document.getElementById('trimmedText').style.display = 'block';
@@ -212,6 +212,10 @@
             return `${pad(hours)}:${pad(minutes)}:${pad(secs)}`;
         }
 
+        function formatTime(seconds) {
+            return new Date(seconds * 1000).toISOString().substr(11, 8);
+        }
+
         function pad(num) {
             return num.toString().padStart(2, '0');
         }
@@ -226,31 +230,16 @@
             document.getElementById('editButton').style.display = 'block';
         });
 
-        document.getElementById('saveButton').addEventListener('click', async () => {
+        document.getElementById('saveButton').addEventListener('click', () => {
             const startTrim = document.getElementById('inputBox1').value;
             const endTrim = document.getElementById('inputBox2').value;
 
             document.getElementById('startTrim').innerText = `Start Trim Position: ${startTrim}`;
             document.getElementById('endTrim').innerText = `End Trim Position: ${endTrim}`;
 
-            const durationInSeconds = calculateDurationInSeconds(startTrim, endTrim);
-
-            document.getElementById('durationText').innerText = `${formatDuration(durationInSeconds)}`;
-            document.getElementById('durationText').style.display = 'block';
-
             document.getElementById('inputContainer').style.display = 'none';
             document.getElementById('editButton').style.display = 'block';
         });
-
-        function calculateDurationInSeconds(startTrim, endTrim) {
-            const [startHours, startMinutes, startSeconds] = startTrim.split(':').map(Number);
-            const [endHours, endMinutes, endSeconds] = endTrim.split(':').map(Number);
-
-            const startTimeInSeconds = startHours * 3600 + startMinutes * 60 + startSeconds;
-            const endTimeInSeconds = endHours * 3600 + endMinutes * 60 + endSeconds;
-
-            return endTimeInSeconds - startTimeInSeconds;
-        }
     </script>
 </body>
 </html>
