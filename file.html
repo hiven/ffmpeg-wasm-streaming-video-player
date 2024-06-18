@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>FFMPEGWASM File Upload</title>
+    <title>Video Duration Extractor</title>
     <style>
         body {
             font-family: Arial, sans-serif;
@@ -21,7 +21,7 @@
             margin-top: 10px;
             padding: 10px;
             border: 1px solid #ccc;
-            white-space: pre-wrap; /* Preserve whitespace and newlines */
+            white-space: pre-wrap;
         }
     </style>
 </head>
@@ -33,7 +33,7 @@
         <div id="output"></div>
     </div>
 
-    <script src="https://cdn.jsdelivr.net/npm/@ffmpeg/ffmpeg@0.11.2/dist/ffmpeg.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@ffmpeg/ffmpeg@0.11.8/dist/ffmpeg.min.js"></script>
     <script>
         const { createFFmpeg, fetchFile } = FFmpeg;
         const ffmpeg = createFFmpeg({ log: true });
@@ -71,13 +71,28 @@
             output.innerText = 'Processing...';
 
             const fileData = await fetchFile(file);
+            ffmpeg.FS('writeFile', 'input.mp4', fileData);
 
-            // Simple FFMPEG command: Get file info
-            ffmpeg.FS('writeFile', 'input', fileData);
-            await ffmpeg.run('-i', 'input');
-            const data = ffmpeg.FS('readFile', 'input');
+            // Get video metadata
+            let metadata = '';
+            ffmpeg.setLogger(({ type, message }) => {
+                if (type === 'fferr' || type === 'ffout') {
+                    metadata += message + '\n';
+                }
+            });
 
-            output.innerText = `File info:\n${new TextDecoder().decode(data)}`;
+            await ffmpeg.run('-i', 'input.mp4');
+
+            // Extract duration from metadata
+            const durationRegex = /Duration: (\d{2}):(\d{2}):(\d{2})\.(\d{2})/;
+            const durationMatch = metadata.match(durationRegex);
+            if (durationMatch) {
+                const [hours, minutes, seconds, milliseconds] = durationMatch.slice(1).map(Number);
+                const durationInSeconds = hours * 3600 + minutes * 60 + seconds + milliseconds / 100;
+                output.innerText = `Video duration: ${durationInSeconds.toFixed(2)} seconds`;
+            } else {
+                output.innerText = 'Failed to extract video duration.';
+            }
         });
     </script>
 </body>
