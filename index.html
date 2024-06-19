@@ -19,7 +19,7 @@
         }
         #thumbnailContainer {
             margin-top: 20px;
-            display: flex;
+            display: none; /* Initially hidden */
         }
         #thumbnail {
             max-width: 100%;
@@ -171,6 +171,9 @@
                     }
 
                     await generateThumbnail(file.name);
+
+                    // Show the thumbnail container after processing is done
+                    document.getElementById('thumbnailContainer').style.display = 'flex';
                 } else {
                     throw new Error('Failed to get video duration');
                 }
