@@ -164,6 +164,10 @@
 
                     document.getElementById('startTrim').innerText = `Start Trim Position: 00:00:00`;
                     document.getElementById('endTrim').innerText = `End Trim Position: ${formatTime(durationInSeconds)}`;
+                    
+                    // Reset input values
+                    document.getElementById('inputBox1').value = '00:00:00';
+                    document.getElementById('inputBox2').value = formatTime(durationInSeconds);
 
                     if (durationInSeconds > 60) {
                         document.getElementById('trimmedText').style.display = 'block';
