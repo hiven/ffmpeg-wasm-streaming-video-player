@@ -102,26 +102,31 @@
             await loadFFMPEG();
         });
 
-        const fileInput = document.getElementById('fileInput');
-        const uploadBox = document.getElementById('uploadBox');
-        const status = document.getElementById('status');
-        const thumbnailContainer = document.getElementById('thumbnailContainer');
-        const thumbnail = document.getElementById('thumbnail');
-        const durationText = document.getElementById('durationText');
-        const trimmedText = document.getElementById('trimmedText');
-        const originalDuration = document.getElementById('originalDuration');
-        const startTrim = document.getElementById('startTrim');
-        const endTrim = document.getElementById('endTrim');
-        const inputContainer = document.getElementById('inputContainer');
-        const inputBox1 = document.getElementById('inputBox1');
-        const inputBox2 = document.getElementById('inputBox2');
-        const editButton = document.getElementById('editButton');
-        const saveButton = document.getElementById('saveButton');
-        const cancelButton = document.getElementById('cancelButton');
-        const trimButton = document.getElementById('trimButton');
-
         const formatDuration = seconds => new Date(seconds * 1000).toISOString().substr(11, 8);
-        const pad = num => num.toString().padStart(2, '0');
+
+        const elements = {
+            fileInput: document.getElementById('fileInput'),
+            uploadBox: document.getElementById('uploadBox'),
+            status: document.getElementById('status'),
+            thumbnailContainer: document.getElementById('thumbnailContainer'),
+            thumbnail: document.getElementById('thumbnail'),
+            durationText: document.getElementById('durationText'),
+            trimmedText: document.getElementById('trimmedText'),
+            originalDuration: document.getElementById('originalDuration'),
+            startTrim: document.getElementById('startTrim'),
+            endTrim: document.getElementById('endTrim'),
+            inputContainer: document.getElementById('inputContainer'),
+            inputBox1: document.getElementById('inputBox1'),
+            inputBox2: document.getElementById('inputBox2'),
+            editButton: document.getElementById('editButton'),
+            saveButton: document.getElementById('saveButton'),
+            cancelButton: document.getElementById('cancelButton'),
+            trimButton: document.getElementById('trimButton')
+        };
+
+        const setStatus = (text) => {
+            elements.status.innerText = text;
+        };
 
         const extractDuration = async file => {
             const fileData = await fetchFile(file);
@@ -140,88 +145,87 @@
         };
 
         const generateThumbnail = async (inputFile, time = '00:00:01') => {
-            const args = ['-i', inputFile, '-ss', time, '-vframes', '1', '-q:v', '2', '-f', 'image2', 'thumbnail.jpg'];
-            await ffmpeg.run(...args);
+            await ffmpeg.run('-i', inputFile, '-ss', time, '-vframes', '1', '-q:v', '2', '-f', 'image2', 'thumbnail.jpg');
             const thumbnailData = ffmpeg.FS('readFile', 'thumbnail.jpg');
-            thumbnail.src = URL.createObjectURL(new Blob([thumbnailData.buffer], { type: 'image/jpeg' }));
+            elements.thumbnail.src = URL.createObjectURL(new Blob([thumbnailData.buffer], { type: 'image/jpeg' }));
         };
 
-        fileInput.addEventListener('change', async event => {
+        const handleFileChange = async (event) => {
             const file = event.target.files[0];
             if (!file) return;
 
-            uploadBox.style.display = 'block';
-            status.innerText = 'Loading...';
+            elements.uploadBox.style.display = 'block';
+            setStatus('Loading...');
 
             if (!ffmpeg.isLoaded()) await loadFFMPEG();
 
-            status.innerText = 'Processing...';
+            setStatus('Processing...');
 
             try {
                 const durationInSeconds = await extractDuration(file);
                 if (!durationInSeconds) throw new Error('Failed to get video duration');
 
                 const formattedDuration = formatDuration(durationInSeconds);
-                originalDuration.innerText = `Original Duration: ${formattedDuration}`;
-                startTrim.innerText = `Start Trim Position: 00:00:00`;
-                endTrim.innerText = `End Trim Position: ${formattedDuration}`;
-                inputBox1.value = '00:00:00';
-                inputBox2.value = formattedDuration;
-                durationText.innerText = formattedDuration;
-                durationText.style.display = 'block';
-                trimmedText.style.display = durationInSeconds > 60 ? 'block' : 'none';
+                elements.originalDuration.innerText = `Original Duration: ${formattedDuration}`;
+                elements.startTrim.innerText = `Start Trim Position: 00:00:00`;
+                elements.endTrim.innerText = `End Trim Position: ${formattedDuration}`;
+                elements.inputBox1.value = '00:00:00';
+                elements.inputBox2.value = formattedDuration;
+                elements.durationText.innerText = formattedDuration;
+                elements.durationText.style.display = 'block';
+                elements.trimmedText.style.display = durationInSeconds > 60 ? 'block' : 'none';
 
                 await generateThumbnail(file.name);
-                thumbnailContainer.style.display = 'flex';
-                status.innerText = 'Processed';
+                elements.thumbnailContainer.style.display = 'flex';
+                setStatus('Processed');
             } catch (error) {
-                status.innerText = `Error: ${error.message}`;
+                setStatus(`Error: ${error.message}`);
                 console.error(error);
             }
-        });
+        };
 
-        editButton.addEventListener('click', () => {
-            inputContainer.style.display = 'block';
-            editButton.style.display = 'none';
-        });
+        const handleEditButtonClick = () => {
+            elements.inputContainer.style.display = 'block';
+            elements.editButton.style.display = 'none';
+        };
 
-        cancelButton.addEventListener('click', () => {
-            inputContainer.style.display = 'none';
-            editButton.style.display = 'block';
-        });
+        const handleCancelButtonClick = () => {
+            elements.inputContainer.style.display = 'none';
+            elements.editButton.style.display = 'block';
+        };
 
-        saveButton.addEventListener('click', async () => {
-            startTrim.innerText = `Start Trim Position: ${inputBox1.value}`;
-            endTrim.innerText = `End Trim Position: ${inputBox2.value}`;
-            inputContainer.style.display = 'none';
-            editButton.style.display = 'block';
+        const handleSaveButtonClick = async () => {
+            elements.startTrim.innerText = `Start Trim Position: ${elements.inputBox1.value}`;
+            elements.endTrim.innerText = `End Trim Position: ${elements.inputBox2.value}`;
+            elements.inputContainer.style.display = 'none';
+            elements.editButton.style.display = 'block';
 
-            const file = fileInput.files[0];
+            const file = elements.fileInput.files[0];
             if (!file) return alert('Please upload a video file first.');
 
             try {
-                await generateThumbnail(file.name, inputBox1.value);
+                await generateThumbnail(file.name, elements.inputBox1.value);
             } catch (error) {
                 console.error('Error generating thumbnail:', error);
             }
-        });
+        };
 
-        trimButton.addEventListener('click', async () => {
-            const startTime = inputBox1.value.split(':').reduce((acc, time) => 60 * acc + +time);
-            const endTime = inputBox2.value.split(':').reduce((acc, time) => 60 * acc + +time);
-            const file = fileInput.files[0];
+        const handleTrimButtonClick = async () => {
+            const startTime = elements.inputBox1.value.split(':').reduce((acc, time) => 60 * acc + +time);
+            const endTime = elements.inputBox2.value.split(':').reduce((acc, time) => 60 * acc + +time);
+            const file = elements.fileInput.files[0];
 
             if (!file) return alert('Please upload a video file first.');
             if (startTime >= endTime) return alert('Start time must be less than end time.');
 
-            status.innerText = 'Trimming video...';
+            setStatus('Trimming video...');
 
             try {
                 const fileData = await fetchFile(file);
                 await ffmpeg.FS('writeFile', file.name, fileData);
 
                 const outputName = 'trimmed_video.mp4';
-                await ffmpeg.run('-i', file.name, '-ss', inputBox1.value, '-to', inputBox2.value, '-c', 'copy', outputName);
+                await ffmpeg.run('-i', file.name, '-ss', elements.inputBox1.value, '-to', elements.inputBox2.value, '-c', 'copy', outputName);
 
                 const trimmedData = ffmpeg.FS('readFile', outputName);
                 const trimmedBlob = new Blob([trimmedData.buffer], { type: 'video/mp4' });
@@ -234,12 +238,18 @@
                 link.click();
                 document.body.removeChild(link);
 
-                status.innerText = 'Video trimmed successfully. Download started.';
+                setStatus('Video trimmed successfully. Download started.');
             } catch (error) {
-                status.innerText = `Error trimming video: ${error.message}`;
+                setStatus(`Error trimming video: ${error.message}`);
                 console.error(error);
             }
-        });
+        };
+
+        elements.fileInput.addEventListener('change', handleFileChange);
+        elements.editButton.addEventListener('click', handleEditButtonClick);
+        elements.cancelButton.addEventListener('click', handleCancelButtonClick);
+        elements.saveButton.addEventListener('click', handleSaveButtonClick);
+        elements.trimButton.addEventListener('click', handleTrimButtonClick);
     </script>
 </body>
 </html>
