@@ -17,12 +17,6 @@
             padding: 10px;
             border: 1px solid #ccc;
         }
-        #output {
-            margin-top: 10px;
-            padding: 10px;
-            border: 1px solid #ccc;
-            white-space: pre-wrap;
-        }
         #thumbnailContainer {
             margin-top: 20px;
             display: flex;
@@ -81,7 +75,6 @@
     <input type="file" id="fileInput">
     <div id="uploadBox" style="display: none;">
         <div id="status">Loading...</div>
-        <div id="output"></div>
         <div id="thumbnailContainer">
             <div id="thumbnailWrapper">
                 <img id="thumbnail" src="" alt="Thumbnail" />
@@ -129,16 +122,16 @@
 
             document.getElementById('uploadBox').style.display = 'block';
 
+            const status = document.getElementById('status');
             if (!ffmpeg.isLoaded()) {
-                document.getElementById('status').innerText = 'Loading...';
+                status.innerText = 'Loading...';
                 await loadFFMPEG();
-                document.getElementById('status').innerText = 'Loaded';
+                status.innerText = 'Loaded';
             } else {
-                document.getElementById('status').innerText = 'Loaded';
+                status.innerText = 'Loaded';
             }
 
-            const output = document.getElementById('output');
-            output.innerText = 'Processing...';
+            status.innerText = 'Processing...';
 
             try {
                 const fileData = await fetchFile(file);
@@ -162,7 +155,7 @@
                     const durationString = durationMatch[1];
                     const [hours, minutes, seconds] = durationString.split(':');
                     const durationInSeconds = Math.floor(parseInt(hours) * 3600 + parseInt(minutes) * 60 + parseFloat(seconds));
-                    output.innerText = `Processed`;
+                    status.innerText = 'Processed';
 
                     document.getElementById('durationText').innerText = `${formatDuration(durationInSeconds)}`;
                     document.getElementById('durationText').style.display = 'block';
@@ -182,7 +175,7 @@
                     throw new Error('Failed to get video duration');
                 }
             } catch (error) {
-                output.innerText = `Error: ${error.message}`;
+                status.innerText = `Error: ${error.message}`;
                 console.error(error);
             }
         });
