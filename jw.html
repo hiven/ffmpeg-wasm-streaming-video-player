@@ -1,0 +1,129 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Video Duration Extractor with Thumbnail</title>
+    <style>
+        body { font-family: Arial, sans-serif; padding: 20px; }
+        #uploadBox, #inputContainer { display: none; }
+        #status, #output, #thumbnailContainer { margin-top: 10px; padding: 10px; border: 1px solid #ccc; }
+        #thumbnail { max-width: 100%; }
+        #trimmedText, #durationText { position: absolute; background-color: rgba(0, 0, 0, 0.7); color: white; padding: 5px; font-size: 12px; border-radius: 5px; display: none; }
+        #trimmedText { top: 5px; right: 5px; }
+        #durationText { bottom: 5px; right: 5px; }
+        #infoContainer { margin-left: 20px; }
+        #infoContainer p, #infoContainer input[type="text"], #infoContainer button { margin-top: 10px; font-size: 14px; }
+        #infoContainer input[type="text"] { width: calc(100% - 22px); padding: 10px; }
+    </style>
+</head>
+<body>
+    <h1>Upload a Video File</h1>
+    <input type="file" id="fileInput">
+    <div id="uploadBox">
+        <div id="status">Loading...</div>
+        <div id="thumbnailContainer">
+            <div id="thumbnailWrapper">
+                <img id="thumbnail" alt="Thumbnail" />
+                <div id="trimmedText">Trimmed</div>
+                <div id="durationText">0s</div>
+            </div>
+            <div id="infoContainer">
+                <p id="originalDuration">Original Duration: 00:00:00</p>
+                <p id="startTrim">Start Trim Position: 00:00:00</p>
+                <p id="endTrim">End Trim Position: 00:00:00</p>
+                <div id="inputContainer">
+                    <input type="text" id="inputBox1" value="00:00:00" pattern="\d{2}:\d{2}:\d{2}" placeholder="00:00:00">
+                    <input type="text" id="inputBox2" value="00:00:00" pattern="\d{2}:\d{2}:\d{2}" placeholder="00:00:00">
+                    <button id="saveButton">Save</button>
+                    <button id="cancelButton">Cancel</button>
+                </div>
+                <button id="editButton">Edit Trim</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/@ffmpeg/ffmpeg@0.11.2/dist/ffmpeg.min.js"></script>
+    <script>
+        const { createFFmpeg, fetchFile } = FFmpeg;
+        const ffmpeg = createFFmpeg({ log: true });
+
+        const loadFFMPEG = () => ffmpeg.load();
+
+        document.addEventListener("DOMContentLoaded", loadFFMPEG);
+
+        const formatDuration = seconds => {
+            const pad = num => String(num).padStart(2, '0');
+            const hours = Math.floor(seconds / 3600);
+            const minutes = Math.floor((seconds % 3600) / 60);
+            const secs = Math.floor(seconds % 60);
+            return `${pad(hours)}:${pad(minutes)}:${pad(secs)}`;
+        };
+
+        document.getElementById('fileInput').addEventListener('change', async event => {
+            const file = event.target.files[0];
+            if (!file) return;
+
+            document.getElementById('uploadBox').style.display = 'block';
+            document.getElementById('status').innerText = 'Loading...';
+
+            if (!ffmpeg.isLoaded()) await loadFFMPEG();
+
+            document.getElementById('status').innerText = 'Processing...';
+
+            try {
+                const fileData = await fetchFile(file);
+                await ffmpeg.FS('writeFile', file.name, fileData);
+
+                let ffmpegOutput = '';
+                ffmpeg.setLogger(({ type, message }) => { if (type === 'fferr' || type === 'ffout') ffmpegOutput += message + '\n'; });
+
+                await ffmpeg.run('-i', file.name);
+
+                const durationMatch = ffmpegOutput.match(/Duration: (\d\d:\d\d:\d\d\.\d\d)/);
+                if (!durationMatch) throw new Error('Failed to get video duration');
+
+                const [hours, minutes, seconds] = durationMatch[1].split(':');
+                const durationInSeconds = Math.floor(parseInt(hours) * 3600 + parseInt(minutes) * 60 + parseFloat(seconds));
+
+                document.getElementById('status').innerText = 'Processed';
+                document.getElementById('durationText').innerText = formatDuration(durationInSeconds);
+                document.getElementById('durationText').style.display = 'block';
+                document.getElementById('originalDuration').innerText = `Original Duration: ${formatDuration(durationInSeconds)}`;
+                document.getElementById('endTrim').innerText = `End Trim Position: ${formatDuration(durationInSeconds)}`;
+                document.getElementById('trimmedText').style.display = durationInSeconds > 60 ? 'block' : 'none';
+
+                await generateThumbnail(file.name);
+
+                document.getElementById('thumbnailContainer').style.display = 'flex';
+            } catch (error) {
+                document.getElementById('status').innerText = `Error: ${error.message}`;
+                console.error(error);
+            }
+        });
+
+        const generateThumbnail = async inputFile => {
+            await ffmpeg.run('-i', inputFile, '-ss', '00:00:01', '-vframes', '1', '-q:v', '2', '-f', 'image2', 'thumbnail.jpg');
+            const thumbnailData = ffmpeg.FS('readFile', 'thumbnail.jpg');
+            document.getElementById('thumbnail').src = URL.createObjectURL(new Blob([thumbnailData.buffer], { type: 'image/jpeg' }));
+        };
+
+        document.getElementById('editButton').addEventListener('click', () => {
+            document.getElementById('inputContainer').style.display = 'block';
+            document.getElementById('editButton').style.display = 'none';
+        });
+
+        document.getElementById('cancelButton').addEventListener('click', () => {
+            document.getElementById('inputContainer').style.display = 'none';
+            document.getElementById('editButton').style.display = 'block';
+        });
+
+        document.getElementById('saveButton').addEventListener('click', () => {
+            document.getElementById('startTrim').innerText = `Start Trim Position: ${document.getElementById('inputBox1').value}`;
+            document.getElementById('endTrim').innerText = `End Trim Position: ${document.getElementById('inputBox2').value}`;
+            document.getElementById('inputContainer').style.display = 'none';
+            document.getElementById('editButton').style.display = 'block';
+        });
+    </script>
+</body>
+</html>
