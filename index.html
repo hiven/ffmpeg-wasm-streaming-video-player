@@ -60,7 +60,7 @@
             padding: 10px;
             font-size: 14px;
         }
-        #editButton, #saveButton, #cancelButton {
+        #editButton, #saveButton, #cancelButton, #trimButton {
             margin-top: 10px;
             padding: 10px 20px;
             font-size: 14px;
@@ -92,6 +92,7 @@
                     <button id="cancelButton">Cancel</button>
                 </div>
                 <button id="editButton">Edit Trim</button>
+                <button id="trimButton">Trim Video</button>
             </div>
         </div>
     </div>
@@ -235,6 +236,53 @@
 
             document.getElementById('inputContainer').style.display = 'none';
             document.getElementById('editButton').style.display = 'block';
+        });
+
+        document.getElementById('trimButton').addEventListener('click', async () => {
+            const startTrim = document.getElementById('inputBox1').value;
+            const endTrim = document.getElementById('inputBox2').value;
+            const fileInput = document.getElementById('fileInput');
+            const file = fileInput.files[0];
+
+            if (!file) {
+                alert('Please upload a video file first.');
+                return;
+            }
+
+            const startTime = startTrim.split(':').reduce((acc, time) => (60 * acc) + +time);
+            const endTime = endTrim.split(':').reduce((acc, time) => (60 * acc) + +time);
+
+            if (startTime >= endTime) {
+                alert('Start time must be less than end time.');
+                return;
+            }
+
+            const status = document.getElementById('status');
+            status.innerText = 'Trimming video...';
+
+            try {
+                const fileData = await fetchFile(file);
+                await ffmpeg.FS('writeFile', file.name, fileData);
+
+                const outputName = 'trimmed_video.mp4';
+                await ffmpeg.run('-i', file.name, '-ss', startTrim, '-to', endTrim, '-c', 'copy', outputName);
+
+                const trimmedData = ffmpeg.FS('readFile', outputName);
+                const trimmedBlob = new Blob([trimmedData.buffer], { type: 'video/mp4' });
+
+                const trimmedUrl = URL.createObjectURL(trimmedBlob);
+                const link = document.createElement('a');
+                link.href = trimmedUrl;
+                link.download = outputName;
+                document.body.appendChild(link);
+                link.click();
+                document.body.removeChild(link);
+
+                status.innerText = 'Video trimmed successfully. Download started.';
+            } catch (error) {
+                status.innerText = `Error trimming video: ${error.message}`;
+                console.error(error);
+            }
         });
     </script>
 </body>
