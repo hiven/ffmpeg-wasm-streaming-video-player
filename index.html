@@ -9,29 +9,24 @@
             font-family: Arial, sans-serif;
             padding: 20px;
         }
-        #uploadBox {
+        #uploadBox, #status, #thumbnailContainer {
             margin-top: 20px;
-        }
-        #status {
-            margin-top: 10px;
             padding: 10px;
             border: 1px solid #ccc;
         }
         #thumbnailContainer {
-            margin-top: 20px;
-            padding: 10px;
-            border: 1px solid #ccc;
-            display: none; /* Initially hidden */
-        }
-        #thumbnail {
-            max-width: 100%;
-            display: block;
+            display: none;
+            display: flex;
         }
         #thumbnailWrapper {
             position: relative;
             max-width: 50%;
         }
-        #trimmedText, #durationText {
+        #thumbnail {
+            max-width: 100%;
+            display: block;
+        }
+        .overlayText {
             position: absolute;
             background-color: rgba(0, 0, 0, 0.7);
             color: white;
@@ -52,20 +47,11 @@
             margin-left: 20px;
             width: 50%;
         }
-        #infoContainer p {
+        #infoContainer p, #infoContainer input[type="text"], #infoContainer button {
             margin-top: 10px;
             font-size: 14px;
-        }
-        #infoContainer input[type="text"] {
-            display: block;
             width: calc(100% - 22px);
             padding: 10px;
-            font-size: 14px;
-        }
-        #editButton, #saveButton, #cancelButton, #trimButton {
-            margin-top: 10px;
-            padding: 10px 20px;
-            font-size: 14px;
         }
         #inputContainer {
             display: none;
@@ -80,8 +66,8 @@
         <div id="thumbnailContainer">
             <div id="thumbnailWrapper">
                 <img id="thumbnail" src="" alt="Thumbnail" />
-                <div id="trimmedText">Trimmed</div>
-                <div id="durationText">0s</div>
+                <div id="trimmedText" class="overlayText">Trimmed</div>
+                <div id="durationText" class="overlayText">0s</div>
             </div>
             <div id="infoContainer">
                 <p id="originalDuration">Original Duration: 00:00:00</p>
@@ -103,7 +89,6 @@
     <script>
         const { createFFmpeg, fetchFile } = FFmpeg;
         const ffmpeg = createFFmpeg({ log: true });
-
         let ffmpegLoadPromise;
 
         const loadFFMPEG = () => {
@@ -117,153 +102,109 @@
             await loadFFMPEG();
         });
 
-        document.getElementById('fileInput').addEventListener('change', async (event) => {
+        const fileInput = document.getElementById('fileInput');
+        const uploadBox = document.getElementById('uploadBox');
+        const status = document.getElementById('status');
+        const thumbnailContainer = document.getElementById('thumbnailContainer');
+        const thumbnail = document.getElementById('thumbnail');
+        const durationText = document.getElementById('durationText');
+        const trimmedText = document.getElementById('trimmedText');
+        const originalDuration = document.getElementById('originalDuration');
+        const startTrim = document.getElementById('startTrim');
+        const endTrim = document.getElementById('endTrim');
+        const inputContainer = document.getElementById('inputContainer');
+        const inputBox1 = document.getElementById('inputBox1');
+        const inputBox2 = document.getElementById('inputBox2');
+        const editButton = document.getElementById('editButton');
+        const saveButton = document.getElementById('saveButton');
+        const cancelButton = document.getElementById('cancelButton');
+        const trimButton = document.getElementById('trimButton');
+
+        const formatDuration = seconds => new Date(seconds * 1000).toISOString().substr(11, 8);
+        const pad = num => num.toString().padStart(2, '0');
+
+        const extractDuration = async file => {
+            const fileData = await fetchFile(file);
+            await ffmpeg.FS('writeFile', file.name, fileData);
+
+            let ffmpegOutput = '';
+            ffmpeg.setLogger(({ type, message }) => {
+                if (type === 'fferr' || type === 'ffout') {
+                    ffmpegOutput += message + '\n';
+                }
+            });
+
+            await ffmpeg.run('-i', file.name);
+            const durationMatch = ffmpegOutput.match(/Duration: (\d\d:\d\d:\d\d\.\d\d)/);
+            return durationMatch ? durationMatch[1].split(':').reduce((acc, time) => 60 * acc + parseFloat(time)) : null;
+        };
+
+        const generateThumbnail = async inputFile => {
+            const args = ['-i', inputFile, '-ss', '00:00:01', '-vframes', '1', '-q:v', '2', '-f', 'image2', 'thumbnail.jpg'];
+            await ffmpeg.run(...args);
+            const thumbnailData = ffmpeg.FS('readFile', 'thumbnail.jpg');
+            thumbnail.src = URL.createObjectURL(new Blob([thumbnailData.buffer], { type: 'image/jpeg' }));
+        };
+
+        fileInput.addEventListener('change', async event => {
             const file = event.target.files[0];
-            if (!file) {
-                return;
-            }
+            if (!file) return;
 
-            document.getElementById('uploadBox').style.display = 'block';
+            uploadBox.style.display = 'block';
+            status.innerText = 'Loading...';
 
-            const status = document.getElementById('status');
-            if (!ffmpeg.isLoaded()) {
-                status.innerText = 'Loading...';
-                await loadFFMPEG();
-                status.innerText = 'Loaded';
-            } else {
-                status.innerText = 'Loaded';
-            }
+            if (!ffmpeg.isLoaded()) await loadFFMPEG();
 
             status.innerText = 'Processing...';
 
             try {
-                const fileData = await fetchFile(file);
-                await ffmpeg.FS('writeFile', file.name, fileData);
+                const durationInSeconds = await extractDuration(file);
+                if (!durationInSeconds) throw new Error('Failed to get video duration');
 
-                let ffmpegOutput = '';
+                const formattedDuration = formatDuration(durationInSeconds);
+                originalDuration.innerText = `Original Duration: ${formattedDuration}`;
+                startTrim.innerText = `Start Trim Position: 00:00:00`;
+                endTrim.innerText = `End Trim Position: ${formattedDuration}`;
+                inputBox1.value = '00:00:00';
+                inputBox2.value = formattedDuration;
+                durationText.innerText = formattedDuration;
+                durationText.style.display = 'block';
+                trimmedText.style.display = durationInSeconds > 60 ? 'block' : 'none';
 
-                ffmpeg.setLogger(({ type, message }) => {
-                    if (type === 'fferr' || type === 'ffout') {
-                        ffmpegOutput += message + '\n';
-                    }
-                });
-
-                const args = ['-i', file.name];
-                await ffmpeg.run(...args);
-
-                const durationRegex = /Duration: (\d\d:\d\d:\d\d\.\d\d)/;
-                const durationMatch = ffmpegOutput.match(durationRegex);
-
-                if (durationMatch && durationMatch.length > 1) {
-                    const durationString = durationMatch[1];
-                    const [hours, minutes, seconds] = durationString.split(':');
-                    const durationInSeconds = Math.floor(parseInt(hours) * 3600 + parseInt(minutes) * 60 + parseFloat(seconds));
-                    status.innerText = 'Processed';
-
-                    document.getElementById('durationText').innerText = `${formatDuration(durationInSeconds)}`;
-                    document.getElementById('durationText').style.display = 'block';
-                    document.getElementById('originalDuration').innerText = `Original Duration: ${formatDuration(durationInSeconds)}`;
-
-                    document.getElementById('startTrim').innerText = `Start Trim Position: 00:00:00`;
-                    document.getElementById('endTrim').innerText = `End Trim Position: ${formatTime(durationInSeconds)}`;
-                    
-                    // Reset input values
-                    document.getElementById('inputBox1').value = '00:00:00';
-                    document.getElementById('inputBox2').value = formatTime(durationInSeconds);
-
-                    if (durationInSeconds > 60) {
-                        document.getElementById('trimmedText').style.display = 'block';
-                    } else {
-                        document.getElementById('trimmedText').style.display = 'none';
-                    }
-
-                    await generateThumbnail(file.name);
-
-                    // Show the thumbnail container after processing is done
-                    document.getElementById('thumbnailContainer').style.display = 'flex';
-                } else {
-                    throw new Error('Failed to get video duration');
-                }
+                await generateThumbnail(file.name);
+                thumbnailContainer.style.display = 'flex';
+                status.innerText = 'Processed';
             } catch (error) {
                 status.innerText = `Error: ${error.message}`;
                 console.error(error);
             }
         });
 
-        async function generateThumbnail(inputFile) {
-            const thumbnailImg = document.getElementById('thumbnail');
-
-            const args = [
-                '-i', inputFile,
-                '-ss', '00:00:01',
-                '-vframes', '1',
-                '-q:v', '2',
-                '-f', 'image2',
-                'thumbnail.jpg'
-            ];
-
-            await ffmpeg.run(...args);
-
-            const thumbnailData = ffmpeg.FS('readFile', 'thumbnail.jpg');
-            thumbnailImg.src = URL.createObjectURL(new Blob([thumbnailData.buffer], { type: 'image/jpeg' }));
-        }
-
-        function formatDuration(seconds) {
-            const hours = Math.floor(seconds / 3600);
-            const minutes = Math.floor((seconds % 3600) / 60);
-            const secs = Math.floor(seconds % 60);
-            return `${pad(hours)}:${pad(minutes)}:${pad(secs)}`;
-        }
-
-        function formatTime(seconds) {
-            return new Date(seconds * 1000).toISOString().substr(11, 8);
-        }
-
-        function pad(num) {
-            return num.toString().padStart(2, '0');
-        }
-
-        document.getElementById('editButton').addEventListener('click', () => {
-            document.getElementById('inputContainer').style.display = 'block';
-            document.getElementById('editButton').style.display = 'none';
+        editButton.addEventListener('click', () => {
+            inputContainer.style.display = 'block';
+            editButton.style.display = 'none';
         });
 
-        document.getElementById('cancelButton').addEventListener('click', () => {
-            document.getElementById('inputContainer').style.display = 'none';
-            document.getElementById('editButton').style.display = 'block';
+        cancelButton.addEventListener('click', () => {
+            inputContainer.style.display = 'none';
+            editButton.style.display = 'block';
         });
 
-        document.getElementById('saveButton').addEventListener('click', () => {
-            const startTrim = document.getElementById('inputBox1').value;
-            const endTrim = document.getElementById('inputBox2').value;
-
-            document.getElementById('startTrim').innerText = `Start Trim Position: ${startTrim}`;
-            document.getElementById('endTrim').innerText = `End Trim Position: ${endTrim}`;
-
-            document.getElementById('inputContainer').style.display = 'none';
-            document.getElementById('editButton').style.display = 'block';
+        saveButton.addEventListener('click', () => {
+            startTrim.innerText = `Start Trim Position: ${inputBox1.value}`;
+            endTrim.innerText = `End Trim Position: ${inputBox2.value}`;
+            inputContainer.style.display = 'none';
+            editButton.style.display = 'block';
         });
 
-        document.getElementById('trimButton').addEventListener('click', async () => {
-            const startTrim = document.getElementById('inputBox1').value;
-            const endTrim = document.getElementById('inputBox2').value;
-            const fileInput = document.getElementById('fileInput');
+        trimButton.addEventListener('click', async () => {
+            const startTime = inputBox1.value.split(':').reduce((acc, time) => 60 * acc + +time);
+            const endTime = inputBox2.value.split(':').reduce((acc, time) => 60 * acc + +time);
             const file = fileInput.files[0];
 
-            if (!file) {
-                alert('Please upload a video file first.');
-                return;
-            }
+            if (!file) return alert('Please upload a video file first.');
+            if (startTime >= endTime) return alert('Start time must be less than end time.');
 
-            const startTime = startTrim.split(':').reduce((acc, time) => (60 * acc) + +time);
-            const endTime = endTrim.split(':').reduce((acc, time) => (60 * acc) + +time);
-
-            if (startTime >= endTime) {
-                alert('Start time must be less than end time.');
-                return;
-            }
-
-            const status = document.getElementById('status');
             status.innerText = 'Trimming video...';
 
             try {
@@ -271,12 +212,12 @@
                 await ffmpeg.FS('writeFile', file.name, fileData);
 
                 const outputName = 'trimmed_video.mp4';
-                await ffmpeg.run('-i', file.name, '-ss', startTrim, '-to', endTrim, '-c', 'copy', outputName);
+                await ffmpeg.run('-i', file.name, '-ss', inputBox1.value, '-to', inputBox2.value, '-c', 'copy', outputName);
 
                 const trimmedData = ffmpeg.FS('readFile', outputName);
                 const trimmedBlob = new Blob([trimmedData.buffer], { type: 'video/mp4' });
-
                 const trimmedUrl = URL.createObjectURL(trimmedBlob);
+
                 const link = document.createElement('a');
                 link.href = trimmedUrl;
                 link.download = outputName;
