@@ -139,8 +139,8 @@
             return durationMatch ? durationMatch[1].split(':').reduce((acc, time) => 60 * acc + parseFloat(time)) : null;
         };
 
-        const generateThumbnail = async inputFile => {
-            const args = ['-i', inputFile, '-ss', '00:00:01', '-vframes', '1', '-q:v', '2', '-f', 'image2', 'thumbnail.jpg'];
+        const generateThumbnail = async (inputFile, time = '00:00:01') => {
+            const args = ['-i', inputFile, '-ss', time, '-vframes', '1', '-q:v', '2', '-f', 'image2', 'thumbnail.jpg'];
             await ffmpeg.run(...args);
             const thumbnailData = ffmpeg.FS('readFile', 'thumbnail.jpg');
             thumbnail.src = URL.createObjectURL(new Blob([thumbnailData.buffer], { type: 'image/jpeg' }));
@@ -190,11 +190,20 @@
             editButton.style.display = 'block';
         });
 
-        saveButton.addEventListener('click', () => {
+        saveButton.addEventListener('click', async () => {
             startTrim.innerText = `Start Trim Position: ${inputBox1.value}`;
             endTrim.innerText = `End Trim Position: ${inputBox2.value}`;
             inputContainer.style.display = 'none';
             editButton.style.display = 'block';
+
+            const file = fileInput.files[0];
+            if (!file) return alert('Please upload a video file first.');
+
+            try {
+                await generateThumbnail(file.name, inputBox1.value);
+            } catch (error) {
+                console.error('Error generating thumbnail:', error);
+            }
         });
 
         trimButton.addEventListener('click', async () => {
