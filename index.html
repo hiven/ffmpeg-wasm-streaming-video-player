@@ -128,6 +128,7 @@
             elements.status.innerText = text;
         };
 
+        // EXTRACT TIME OF VIDEO
         const extractDuration = async file => {
             const fileData = await fetchFile(file);
             await ffmpeg.FS('writeFile', file.name, fileData);
@@ -144,21 +145,20 @@
             return durationMatch ? durationMatch[1].split(':').reduce((acc, time) => 60 * acc + parseFloat(time)) : null;
         };
 
+        // GENERATE THUMBNAIL
         const generateThumbnail = async (inputFile, time = '00:00:01') => {
             await ffmpeg.run('-i', inputFile, '-ss', time, '-vframes', '1', '-q:v', '2', '-f', 'image2', 'thumbnail.jpg');
             const thumbnailData = ffmpeg.FS('readFile', 'thumbnail.jpg');
             elements.thumbnail.src = URL.createObjectURL(new Blob([thumbnailData.buffer], { type: 'image/jpeg' }));
         };
 
+        // FILE CHANGED
         const handleFileChange = async (event) => {
             const file = event.target.files[0];
             if (!file) return;
-
             elements.uploadBox.style.display = 'block';
             setStatus('Loading...');
-
             if (!ffmpeg.isLoaded()) await loadFFMPEG();
-
             setStatus('Processing...');
 
             try {
