@@ -107,10 +107,10 @@
         };
 
         // GENERATE THUMBNAIL
-        const generateThumbnail = async (inputFile, time = '00:00:01') => {
+        const generateThumbnail = async (inputFile, time = '00:03:01') => {
             console.log(`Generating thumbnail at ${time}...`);
             console.time("Generate Thumbnail Time");
-            await ffmpeg.run('-i', inputFile, '-ss', time, '-vframes', '1', '-q:v', '2', '-f', 'image2', 'thumbnail.jpg');
+            await ffmpeg.run('-i', inputFile, '-ss', '00:03:01', '-vframes', '1', '-q:v', '2', '-f', 'image2', 'thumbnail.jpg');
             const thumbnailData = ffmpeg.FS('readFile', 'thumbnail.jpg');
             elements.thumbnail.src = URL.createObjectURL(new Blob([thumbnailData.buffer], { type: 'image/jpeg' }));
             console.timeEnd("Generate Thumbnail Time");
