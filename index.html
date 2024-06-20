@@ -107,14 +107,13 @@
         };
 
         // GENERATE THUMBNAIL
-        const generateThumbnail = async (inputFile, time = '00:03:01') => {
+        const generateThumbnail = async (inputFile, time = '00:00:00') => {
             console.log(`Generating thumbnail at ${time}...`);
             console.time("Generate Thumbnail Time");
             await ffmpeg.run(
               '-skip_frame', 'nokey',
               '-ss', time,
               '-i', inputFile,
-              //'-vf', 'scale=160:90',
               '-vframes', '1',
               '-q:v', '2',
               '-an',
@@ -124,7 +123,6 @@
               '-f', 'image2',
               'thumbnail.jpg'
             );
-            //await ffmpeg.run('-ss', '00:03:01', '-i', inputFile, '-vframes', '1', '-q:v', '2', '-f', 'image2', 'thumbnail.jpg');
             const thumbnailData = ffmpeg.FS('readFile', 'thumbnail.jpg');
             elements.thumbnail.src = URL.createObjectURL(new Blob([thumbnailData.buffer], { type: 'image/jpeg' }));
             console.timeEnd("Generate Thumbnail Time");
@@ -236,11 +234,23 @@
             }
         };
 
+        const handleInputChange = async () => {
+            if (!fileLoaded) return;
+            try {
+                console.log(`Generating new thumbnail at ${elements.inputBox1.value} due to input change...`);
+                await generateThumbnail(currentFileName, elements.inputBox1.value);
+                console.log("New thumbnail generated due to input change");
+            } catch (error) {
+                console.error('Error generating thumbnail:', error);
+            }
+        };
+
         elements.fileInput.addEventListener('change', handleFileChange);
         elements.editButton.addEventListener('click', handleEditButtonClick);
         elements.cancelButton.addEventListener('click', handleCancelButtonClick);
         elements.saveButton.addEventListener('click', handleSaveButtonClick);
         elements.trimButton.addEventListener('click', handleTrimButtonClick);
+        elements.inputBox1.addEventListener('input', handleInputChange);
     </script>
 
 </body>
