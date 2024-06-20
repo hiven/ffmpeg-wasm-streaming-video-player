@@ -112,7 +112,21 @@
             console.time("Generate Thumbnail Time");
             //await ffmpeg.run('-i', inputFile, '-ss', '00:03:01', '-vframes', '1', '-q:v', '2', '-f', 'image2', 'thumbnail.jpg');
             //await ffmpeg.run('-i', inputFile, '-ss', '00:03:01', '-vframes', '1', '-q:v', '2', '-preset', 'ultrafast', '-f', 'image2', 'thumbnail.jpg');
-            await ffmpeg.run('-ss', '00:03:01', '-i', inputFile, '-vframes', '1', '-q:v', '2', '-f', 'image2', 'thumbnail.jpg');
+            await ffmpeg.run(
+              '-skip_frame', 'nokey',
+              '-ss', '00:03:01',
+              '-i', inputFile,
+              '-vf', 'scale=160:90',
+              '-vframes', '1',
+              '-q:v', '2',
+              '-an',
+              '-sn',
+              '-dn',
+              '-threads', '4',
+              '-f', 'image2',
+              'thumbnail.jpg'
+            );
+            //await ffmpeg.run('-ss', '00:03:01', '-i', inputFile, '-vframes', '1', '-q:v', '2', '-f', 'image2', 'thumbnail.jpg');
             const thumbnailData = ffmpeg.FS('readFile', 'thumbnail.jpg');
             elements.thumbnail.src = URL.createObjectURL(new Blob([thumbnailData.buffer], { type: 'image/jpeg' }));
             console.timeEnd("Generate Thumbnail Time");
