@@ -234,23 +234,11 @@
             }
         };
 
-        const handleInputChange = async () => {
-            if (!fileLoaded) return;
-            try {
-                console.log(`Generating new thumbnail at ${elements.inputBox1.value} due to input change...`);
-                await generateThumbnail(currentFileName, elements.inputBox1.value);
-                console.log("New thumbnail generated due to input change");
-            } catch (error) {
-                console.error('Error generating thumbnail:', error);
-            }
-        };
-
         elements.fileInput.addEventListener('change', handleFileChange);
         elements.editButton.addEventListener('click', handleEditButtonClick);
         elements.cancelButton.addEventListener('click', handleCancelButtonClick);
         elements.saveButton.addEventListener('click', handleSaveButtonClick);
         elements.trimButton.addEventListener('click', handleTrimButtonClick);
-        elements.inputBox1.addEventListener('input', handleInputChange);
     </script>
 
 </body>
