@@ -51,11 +51,7 @@
         };
 
         document.addEventListener("DOMContentLoaded", async () => {
-            console.log("Loading FFMPEG...");
-            console.time("FFMPEG Load Time");
             await loadFFMPEG();
-            console.timeEnd("FFMPEG Load Time");
-            console.log("FFMPEG Loaded");
         });
 
         const formatDuration = seconds => new Date(seconds * 1000).toISOString().substr(11, 8);
@@ -82,13 +78,10 @@
 
         const setStatus = (text) => {
             elements.status.innerText = text;
-            console.log(text);
         };
 
         // EXTRACT TIME OF VIDEO
         const extractDuration = async file => {
-            console.log("Extracting duration...");
-            console.time("Extract Duration Time");
             const fileData = await fetchFile(file);
             await ffmpeg.FS('writeFile', file.name, fileData);
 
@@ -101,15 +94,11 @@
 
             await ffmpeg.run('-i', file.name);
             const durationMatch = ffmpegOutput.match(/Duration: (\d\d:\d\d:\d\d\.\d\d)/);
-            console.timeEnd("Extract Duration Time");
-            console.log("Duration extracted");
             return durationMatch ? durationMatch[1].split(':').reduce((acc, time) => 60 * acc + parseFloat(time)) : null;
         };
 
         // GENERATE THUMBNAIL
         const generateThumbnail = async (inputFile, time = '00:00:00') => {
-            console.log(`Generating thumbnail at ${time}...`);
-            console.time("Generate Thumbnail Time");
             await ffmpeg.run(
               '-skip_frame', 'nokey',
               '-ss', time,
@@ -125,13 +114,10 @@
             );
             const thumbnailData = ffmpeg.FS('readFile', 'thumbnail.jpg');
             elements.thumbnail.src = URL.createObjectURL(new Blob([thumbnailData.buffer], { type: 'image/jpeg' }));
-            console.timeEnd("Generate Thumbnail Time");
-            console.log("Thumbnail generated");
         };
 
         // FILE CHANGED
         const handleFileChange = async (event) => {
-            console.log("File input changed");
             const file = event.target.files[0];
             if (!file) return;
             elements.uploadBox.style.display = 'block';
@@ -161,24 +147,20 @@
                 setStatus('Processed');
             } catch (error) {
                 setStatus(`Error: ${error.message}`);
-                console.error(error);
             }
         };
 
         const handleEditButtonClick = () => {
-            console.log("Edit button clicked");
             elements.inputContainer.style.display = 'block';
             elements.editButton.style.display = 'none';
         };
 
         const handleCancelButtonClick = () => {
-            console.log("Cancel button clicked");
             elements.inputContainer.style.display = 'none';
             elements.editButton.style.display = 'block';
         };
 
         const handleSaveButtonClick = async () => {
-            console.log("Save button clicked");
             elements.startTrim.innerText = `Start Trim Position: ${elements.inputBox1.value}`;
             elements.endTrim.innerText = `End Trim Position: ${elements.inputBox2.value}`;
             elements.inputContainer.style.display = 'none';
@@ -187,18 +169,13 @@
             if (!fileLoaded) return alert('Please upload a video file first.');
 
             try {
-                console.log(`Generating new thumbnail at ${elements.inputBox1.value}...`);
-                console.time("Generate New Thumbnail Time");
                 await generateThumbnail(currentFileName, elements.inputBox1.value);
-                console.timeEnd("Generate New Thumbnail Time");
-                console.log("New thumbnail generated");
             } catch (error) {
                 console.error('Error generating thumbnail:', error);
             }
         };
 
         const handleTrimButtonClick = async () => {
-            console.log("Trim button clicked");
             const startTime = elements.inputBox1.value.split(':').reduce((acc, time) => 60 * acc + +time);
             const endTime = elements.inputBox2.value.split(':').reduce((acc, time) => 60 * acc + +time);
 
@@ -208,9 +185,6 @@
             setStatus('Trimming video...');
 
             try {
-                console.log("Starting video trim process...");
-                console.time("Video Trim Time");
-
                 const outputName = 'trimmed_video.mp4';
                 await ffmpeg.run('-i', currentFileName, '-ss', elements.inputBox1.value, '-to', elements.inputBox2.value, '-c', 'copy', outputName);
 
@@ -225,12 +199,9 @@
                 link.click();
                 document.body.removeChild(link);
 
-                console.timeEnd("Video Trim Time");
                 setStatus('Video trimmed successfully. Download started.');
-                console.log("Video trimmed successfully");
             } catch (error) {
                 setStatus(`Error trimming video: ${error.message}`);
-                console.error(error);
             }
         };
 
