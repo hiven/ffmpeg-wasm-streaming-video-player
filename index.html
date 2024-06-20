@@ -88,8 +88,10 @@
     <script src="https://cdn.jsdelivr.net/npm/@ffmpeg/ffmpeg@0.11.2/dist/ffmpeg.min.js"></script>
 <script>
     const { createFFmpeg, fetchFile } = FFmpeg;
-    const ffmpeg = createFFmpeg({ log: false });
+    const ffmpeg = createFFmpeg({ log: true });
     let ffmpegLoadPromise;
+    let fileLoaded = false;
+    let currentFileName = '';
 
     const loadFFMPEG = () => {
         if (!ffmpegLoadPromise) {
@@ -179,6 +181,9 @@
             const durationInSeconds = await extractDuration(file);
             if (!durationInSeconds) throw new Error('Failed to get video duration');
 
+            currentFileName = file.name;
+            fileLoaded = true;
+
             const formattedDuration = formatDuration(durationInSeconds);
             elements.originalDuration.innerText = `Original Duration: ${formattedDuration}`;
             elements.startTrim.innerText = `Start Trim Position: 00:00:00`;
@@ -217,13 +222,12 @@
         elements.inputContainer.style.display = 'none';
         elements.editButton.style.display = 'block';
 
-        const file = elements.fileInput.files[0];
-        if (!file) return alert('Please upload a video file first.');
+        if (!fileLoaded) return alert('Please upload a video file first.');
 
         try {
             console.log(`Generating new thumbnail at ${elements.inputBox1.value}...`);
             console.time("Generate New Thumbnail Time");
-            await generateThumbnail(file.name, elements.inputBox1.value);
+            await generateThumbnail(currentFileName, elements.inputBox1.value);
             console.timeEnd("Generate New Thumbnail Time");
             console.log("New thumbnail generated");
         } catch (error) {
@@ -235,9 +239,8 @@
         console.log("Trim button clicked");
         const startTime = elements.inputBox1.value.split(':').reduce((acc, time) => 60 * acc + +time);
         const endTime = elements.inputBox2.value.split(':').reduce((acc, time) => 60 * acc + +time);
-        const file = elements.fileInput.files[0];
 
-        if (!file) return alert('Please upload a video file first.');
+        if (!fileLoaded) return alert('Please upload a video file first.');
         if (startTime >= endTime) return alert('Start time must be less than end time.');
 
         setStatus('Trimming video...');
@@ -245,11 +248,9 @@
         try {
             console.log("Starting video trim process...");
             console.time("Video Trim Time");
-            const fileData = await fetchFile(file);
-            await ffmpeg.FS('writeFile', file.name, fileData);
 
             const outputName = 'trimmed_video.mp4';
-            await ffmpeg.run('-i', file.name, '-ss', elements.inputBox1.value, '-to', elements.inputBox2.value, '-c', 'copy', outputName);
+            await ffmpeg.run('-i', currentFileName, '-ss', elements.inputBox1.value, '-to', elements.inputBox2.value, '-c', 'copy', outputName);
 
             const trimmedData = ffmpeg.FS('readFile', outputName);
             const trimmedBlob = new Blob([trimmedData.buffer], { type: 'video/mp4' });
