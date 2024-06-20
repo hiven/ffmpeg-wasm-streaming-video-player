@@ -110,11 +110,9 @@
         const generateThumbnail = async (inputFile, time = '00:03:01') => {
             console.log(`Generating thumbnail at ${time}...`);
             console.time("Generate Thumbnail Time");
-            //await ffmpeg.run('-i', inputFile, '-ss', '00:03:01', '-vframes', '1', '-q:v', '2', '-f', 'image2', 'thumbnail.jpg');
-            //await ffmpeg.run('-i', inputFile, '-ss', '00:03:01', '-vframes', '1', '-q:v', '2', '-preset', 'ultrafast', '-f', 'image2', 'thumbnail.jpg');
             await ffmpeg.run(
               '-skip_frame', 'nokey',
-              '-ss', '00:03:01',
+              '-ss', time,
               '-i', inputFile,
               //'-vf', 'scale=160:90',
               '-vframes', '1',
