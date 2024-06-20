@@ -79,33 +79,21 @@
         };
 
         // EXTRACT TIME OF VIDEO
-const extractDuration = async file => {
-    console.log("Starting duration extraction...");
-    const fileData = await fetchFile(file);
-    console.log("File data fetched");
-    await ffmpeg.FS('writeFile', file.name, fileData);
-    console.log("File written to FS");
+        const extractDuration = async file => {
+            const fileData = await fetchFile(file);
+            await ffmpeg.FS('writeFile', file.name, fileData);
 
-    let ffmpegOutput = '';
-    ffmpeg.setLogger(({ type, message }) => {
-        if (type === 'fferr' || type === 'ffout') {
-            ffmpegOutput += message + '\n';
-        }
-    });
+            let ffmpegOutput = '';
+            ffmpeg.setLogger(({ type, message }) => {
+                if (type === 'fferr' || type === 'ffout') {
+                    ffmpegOutput += message + '\n';
+                }
+            });
 
-    await ffmpeg.run('-i', file.name);
-    console.log("FFmpeg command run");
-    const durationMatch = ffmpegOutput.match(/Duration: (\d\d:\d\d:\d\d\.\d\d)/);
-    if (durationMatch) {
-        console.log(`Duration found: ${durationMatch[1]}`);
-        const durationInSeconds = durationMatch[1].split(':').reduce((acc, time) => 60 * acc + parseFloat(time));
-        console.log(`Duration in seconds: ${durationInSeconds}`);
-        return durationInSeconds;
-    } else {
-        console.log("Duration not found in ffmpeg output");
-        return null;
-    }
-};
+            await ffmpeg.run('-i', file.name);
+            const durationMatch = ffmpegOutput.match(/Duration: (\d\d:\d\d:\d\d\.\d\d)/);
+            return durationMatch ? durationMatch[1].split(':').reduce((acc, time) => 60 * acc + parseFloat(time)) : null;
+        };
 
         // GENERATE THUMBNAIL
         const generateThumbnail = async (inputFile, time = '00:00:00') => {
