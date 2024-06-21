@@ -142,7 +142,7 @@
 
                 await generateThumbnail(file.name);
                 elements.thumbnailContainer.style.display = 'flex';
-                setStatus('Processed');
+                setStatus('');
             } catch (error) {
                 setStatus(`Error: ${error.message}`);
             }
