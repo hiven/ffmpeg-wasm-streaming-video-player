@@ -16,8 +16,7 @@
             <div id="status">Loading...</div>
             <div id="thumbnailContainer">
                 <div id="thumbnailWrapper">
-                    <img id="startThumbnail" src="" alt="Start Thumbnail" />
-                    <img id="endThumbnail" src="" alt="End Thumbnail" />
+                    <img id="thumbnail" src="" alt="Thumbnail" />
                     <div id="trimmedText" class="overlayText">Trimmed</div>
                     <div id="durationText" class="overlayText">0s</div>
                 </div>
@@ -75,8 +74,7 @@
             uploadBox: document.getElementById('uploadBox'),
             status: document.getElementById('status'),
             thumbnailContainer: document.getElementById('thumbnailContainer'),
-            startThumbnail: document.getElementById('startThumbnail'),
-            endThumbnail: document.getElementById('endThumbnail'),
+            thumbnail: document.getElementById('thumbnail'),
             durationText: document.getElementById('durationText'),
             trimmedText: document.getElementById('trimmedText'),
             originalDuration: document.getElementById('originalDuration'),
@@ -116,8 +114,7 @@
         };
 
         // GENERATE THUMBNAIL
-        const generateThumbnail = async (inputFile, time = '00:00:00', isStart = true) => {
-            const thumbnailFile = isStart ? 'start_thumbnail.jpg' : 'end_thumbnail.jpg';
+        const generateThumbnail = async (inputFile, time = '00:00:00') => {
             await ffmpeg.run(
               '-skip_frame', 'nokey',
               '-ss', time,
@@ -129,16 +126,10 @@
               '-dn',
               '-threads', '4',
               '-f', 'image2',
-              thumbnailFile
+              'thumbnail.jpg'
             );
-
-            const thumbnailData = ffmpeg.FS('readFile', thumbnailFile);
-            const thumbnailBlob = URL.createObjectURL(new Blob([thumbnailData.buffer], { type: 'image/jpeg' }));
-            if (isStart) {
-                elements.startThumbnail.src = thumbnailBlob;
-            } else {
-                elements.endThumbnail.src = thumbnailBlob;
-            }
+            const thumbnailData = ffmpeg.FS('readFile', 'thumbnail.jpg');
+            elements.thumbnail.src = URL.createObjectURL(new Blob([thumbnailData.buffer], { type: 'image/jpeg' }));
         };
 
         // FILE CHANGED
@@ -171,8 +162,7 @@
                 // Update the slider max value to the video duration
                 elements.startSlider.max = durationInSeconds;
 
-                await generateThumbnail(file.name, '00:00:00', true);
-                await generateThumbnail(file.name, formattedDuration, false);
+                await generateThumbnail(file.name);
                 elements.thumbnailContainer.style.display = 'flex';
                 setStatus('');
             } catch (error) {
@@ -199,10 +189,9 @@
             if (!fileLoaded) return alert('Please upload a video file first.');
 
             try {
-                await generateThumbnail(currentFileName, elements.inputBox1.value, true);
-                await generateThumbnail(currentFileName, elements.inputBox2.value, false);
+                await generateThumbnail(currentFileName, elements.inputBox1.value);
             } catch (error) {
-                console.error('Error generating thumbnails:', error);
+                console.error('Error generating thumbnail:', error);
             }
         };
 
@@ -270,5 +259,6 @@
         elements.startSlider.addEventListener('input', handleSliderChange);
         elements.uploadForm.addEventListener('submit', handleSubmit);
     </script>
+
 </body>
 </html>
