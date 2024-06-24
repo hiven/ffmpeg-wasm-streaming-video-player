@@ -12,9 +12,6 @@
         <label for="fileInput">Select Video File:</label>
         <input type="file" id="fileInput" name="file" accept="video/*" required><br><br>
 
-        <label for="description">Description:</label>
-        <textarea id="description" name="description" placeholder="Enter a description" rows="4" cols="50"></textarea><br><br>
-
         <div id="uploadBox" style="display: none;">
             <div id="status">Loading...</div>
             <div id="thumbnailContainer">
@@ -41,6 +38,8 @@
                     <button type="button" id="editButton">Edit Trim</button>
                     <button type="button" id="trimButton">Trim Video</button>
                 </div>
+                <label for="description">Description:</label>
+                <textarea id="description" name="description" placeholder="Enter a description" rows="4" cols="50"></textarea>
             </div>
         </div>
 
@@ -89,7 +88,8 @@
             cancelButton: document.getElementById('cancelButton'),
             trimButton: document.getElementById('trimButton'),
             startSlider: document.getElementById('startSlider'),
-            startSliderValue: document.getElementById('startSliderValue')
+            startSliderValue: document.getElementById('startSliderValue'),
+            description: document.getElementById('description')
         };
 
         const setStatus = (text) => {
