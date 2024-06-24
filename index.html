@@ -29,7 +29,12 @@
                     <p id="endTrim">End Trim Position: 00:00:00</p>
                     <div id="inputContainer">
                         <input type="text" id="inputBox1" value="00:00:00" pattern="\d{2}:\d{2}:\d{2}" placeholder="00:00:00">
-                        <input type="text" id="inputBox2" value="00:00:00" pattern="\d{2}:\d{2}:\d{2}" placeholder="00:00:00">
+                        <input type="text" id="inputBox2" value="00:00:00" pattern="\d{2}:\d{2}:\d{2}" placeholder="00:00:00"><br><br>
+                        
+                        <label for="startSlider">Set Start Position:</label>
+                        <input type="range" id="startSlider" name="startSlider" min="0" max="100" value="0" step="1">
+                        <span id="startSliderValue">00:00:00</span><br><br>
+
                         <button type="button" id="saveButton">Save</button>
                         <button type="button" id="cancelButton">Cancel</button>
                     </div>
@@ -49,6 +54,7 @@
         let ffmpegLoadPromise;
         let fileLoaded = false;
         let currentFileName = '';
+        let videoDuration = 0; // To store the video duration in seconds
 
         const loadFFMPEG = () => {
             if (!ffmpegLoadPromise) {
@@ -81,7 +87,9 @@
             editButton: document.getElementById('editButton'),
             saveButton: document.getElementById('saveButton'),
             cancelButton: document.getElementById('cancelButton'),
-            trimButton: document.getElementById('trimButton')
+            trimButton: document.getElementById('trimButton'),
+            startSlider: document.getElementById('startSlider'),
+            startSliderValue: document.getElementById('startSliderValue')
         };
 
         const setStatus = (text) => {
@@ -139,6 +147,7 @@
 
                 currentFileName = file.name;
                 fileLoaded = true;
+                videoDuration = durationInSeconds; // Set the video duration
 
                 const formattedDuration = formatDuration(durationInSeconds);
                 elements.originalDuration.innerText = `Original Duration: ${formattedDuration}`;
@@ -149,6 +158,9 @@
                 elements.durationText.innerText = formattedDuration;
                 elements.durationText.style.display = 'block';
                 elements.trimmedText.style.display = durationInSeconds > 60 ? 'block' : 'none';
+
+                // Update the slider max value to the video duration
+                elements.startSlider.max = durationInSeconds;
 
                 await generateThumbnail(file.name);
                 elements.thumbnailContainer.style.display = 'flex';
@@ -213,6 +225,13 @@
             }
         };
 
+        const handleSliderChange = () => {
+            const sliderValue = elements.startSlider.value;
+            const formattedTime = formatDuration(sliderValue);
+            elements.inputBox1.value = formattedTime;
+            elements.startSliderValue.innerText = formattedTime;
+        };
+
         const handleSubmit = async (event) => {
             event.preventDefault();
             if (!fileLoaded) return alert('Please upload a video file first.');
@@ -237,6 +256,7 @@
         elements.cancelButton.addEventListener('click', handleCancelButtonClick);
         elements.saveButton.addEventListener('click', handleSaveButtonClick);
         elements.trimButton.addEventListener('click', handleTrimButtonClick);
+        elements.startSlider.addEventListener('input', handleSliderChange);
         elements.uploadForm.addEventListener('submit', handleSubmit);
     </script>
 
