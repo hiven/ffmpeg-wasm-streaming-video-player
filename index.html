@@ -8,30 +8,39 @@
 </head>
 <body>
     <h1>Upload a Video File</h1>
-    <input type="file" id="fileInput" accept="video/*">
-    <div id="uploadBox" style="display: none;">
-        <div id="status">Loading...</div>
-        <div id="thumbnailContainer">
-            <div id="thumbnailWrapper">
-                <img id="thumbnail" src="" alt="Thumbnail" />
-                <div id="trimmedText" class="overlayText">Trimmed</div>
-                <div id="durationText" class="overlayText">0s</div>
-            </div>
-            <div id="infoContainer">
-                <p id="originalDuration">Original Duration: 00:00:00</p>
-                <p id="startTrim">Start Trim Position: 00:00:00</p>
-                <p id="endTrim">End Trim Position: 00:00:00</p>
-                <div id="inputContainer">
-                    <input type="text" id="inputBox1" value="00:00:00" pattern="\d{2}:\d{2}:\d{2}" placeholder="00:00:00">
-                    <input type="text" id="inputBox2" value="00:00:00" pattern="\d{2}:\d{2}:\d{2}" placeholder="00:00:00">
-                    <button id="saveButton">Save</button>
-                    <button id="cancelButton">Cancel</button>
+    <form id="uploadForm">
+        <label for="fileInput">Select Video File:</label>
+        <input type="file" id="fileInput" name="file" accept="video/*" required><br><br>
+
+        <label for="description">Description:</label>
+        <textarea id="description" name="description" placeholder="Enter a description" rows="4" cols="50"></textarea><br><br>
+
+        <div id="uploadBox" style="display: none;">
+            <div id="status">Loading...</div>
+            <div id="thumbnailContainer">
+                <div id="thumbnailWrapper">
+                    <img id="thumbnail" src="" alt="Thumbnail" />
+                    <div id="trimmedText" class="overlayText">Trimmed</div>
+                    <div id="durationText" class="overlayText">0s</div>
                 </div>
-                <button id="editButton">Edit Trim</button>
-                <button id="trimButton">Trim Video</button>
+                <div id="infoContainer">
+                    <p id="originalDuration">Original Duration: 00:00:00</p>
+                    <p id="startTrim">Start Trim Position: 00:00:00</p>
+                    <p id="endTrim">End Trim Position: 00:00:00</p>
+                    <div id="inputContainer">
+                        <input type="text" id="inputBox1" value="00:00:00" pattern="\d{2}:\d{2}:\d{2}" placeholder="00:00:00">
+                        <input type="text" id="inputBox2" value="00:00:00" pattern="\d{2}:\d{2}:\d{2}" placeholder="00:00:00">
+                        <button type="button" id="saveButton">Save</button>
+                        <button type="button" id="cancelButton">Cancel</button>
+                    </div>
+                    <button type="button" id="editButton">Edit Trim</button>
+                    <button type="button" id="trimButton">Trim Video</button>
+                </div>
             </div>
         </div>
-    </div>
+
+        <button type="submit">Submit</button>
+    </form>
 
     <script src="https://cdn.jsdelivr.net/npm/@ffmpeg/ffmpeg@0.11.2/dist/ffmpeg.min.js"></script>
     <script>
@@ -56,6 +65,7 @@
 
         const elements = {
             fileInput: document.getElementById('fileInput'),
+            uploadForm: document.getElementById('uploadForm'),
             uploadBox: document.getElementById('uploadBox'),
             status: document.getElementById('status'),
             thumbnailContainer: document.getElementById('thumbnailContainer'),
@@ -203,11 +213,31 @@
             }
         };
 
+        const handleSubmit = async (event) => {
+            event.preventDefault();
+            if (!fileLoaded) return alert('Please upload a video file first.');
+
+            const formData = new FormData(elements.uploadForm);
+            try {
+                const response = await fetch('YOUR_API_ENDPOINT', {
+                    method: 'POST',
+                    body: formData
+                });
+
+                if (!response.ok) throw new Error('Failed to upload');
+
+                alert('File uploaded successfully');
+            } catch (error) {
+                alert(`Error: ${error.message}`);
+            }
+        };
+
         elements.fileInput.addEventListener('change', handleFileChange);
         elements.editButton.addEventListener('click', handleEditButtonClick);
         elements.cancelButton.addEventListener('click', handleCancelButtonClick);
         elements.saveButton.addEventListener('click', handleSaveButtonClick);
         elements.trimButton.addEventListener('click', handleTrimButtonClick);
+        elements.uploadForm.addEventListener('submit', handleSubmit);
     </script>
 
 </body>
