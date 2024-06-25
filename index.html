@@ -5,23 +5,6 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Video Duration Extractor with Thumbnail</title>
     <link rel="stylesheet" href="css/style.css">
-    <style>
-        .container {width: 70%; margin: 0 auto;background: white;padding: 20px;}
-        input {display: block;margin-bottom:15px;}
-        .form-field {
-            margin-bottom: 15px;
-        }
-        label {
-            display: block;
-            font-weight: bold;
-            margin-bottom: 5px;
-        }
-        textarea {
-            width: 100%;
-            padding-bottom: 20px;
-            box-sizing: border-box;
-        }
-    </style>
 </head>
 <body>
 <div class="container">
@@ -72,6 +55,8 @@
         let fileLoaded = false;
         let currentFileName = '';
         let videoDuration = 0; // To store the video duration in seconds
+        let videoTrimmed = false; // Flag to check if video has been trimmed
+        let trimSettings = { start: '00:00:00', end: '00:00:00' }; // Store trim settings
 
         const loadFFMPEG = () => {
             if (!ffmpegLoadPromise) {
@@ -107,7 +92,8 @@
             trimButton: document.getElementById('trimButton'),
             startSlider: document.getElementById('startSlider'),
             startSliderValue: document.getElementById('startSliderValue'),
-            description: document.getElementById('description')
+            description: document.getElementById('description'),
+            trimmedVideoContainer: document.getElementById('trimmedVideoContainer')
         };
 
         const setStatus = (text) => {
@@ -211,6 +197,9 @@
             } catch (error) {
                 console.error('Error generating thumbnail:', error);
             }
+
+            // Update trim settings
+            trimSettings = { start: elements.inputBox1.value, end: elements.inputBox2.value };
         };
 
 const handleTrimButtonClick = async () => {
@@ -250,11 +239,11 @@ const handleTrimButtonClick = async () => {
         elements.uploadBox.appendChild(videoElement);
 
         setStatus('Video trimmed successfully.');
+        videoTrimmed = true; // Set flag to indicate video has been trimmed
     } catch (error) {
         setStatus(`Error trimming video: ${error.message}`);
     }
 };
-
 
         const handleSliderChange = () => {
             const sliderValue = elements.startSlider.value;
@@ -266,6 +255,16 @@ const handleTrimButtonClick = async () => {
         const handleSubmit = async (event) => {
             event.preventDefault();
             if (!fileLoaded) return alert('Please upload a video file first.');
+
+            const currentStartTrim = elements.inputBox1.value;
+            const currentEndTrim = elements.inputBox2.value;
+
+            // Check if the video needs to be trimmed again
+            if (videoTrimmed && trimSettings.start === currentStartTrim && trimSettings.end === currentEndTrim) {
+                alert('Video has already been trimmed with the current settings.');
+            } else {
+                await handleTrimButtonClick();
+            }
 
             const formData = new FormData(elements.uploadForm);
             try {
