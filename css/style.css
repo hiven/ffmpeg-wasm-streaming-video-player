@@ -13,13 +13,6 @@
             color: #444;
         }
 
-        input[type="file"] {
-            margin: 20px 0;
-            padding: 10px;
-            border: 1px solid #ccc;
-            border-radius: 4px;
-            background-color: #fff;
-        }
 
         #uploadBox {
             width: 100%;
