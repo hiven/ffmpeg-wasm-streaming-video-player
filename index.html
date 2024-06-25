@@ -6,15 +6,132 @@
     <title>Video Duration Extractor with Thumbnail</title>
     <link rel="stylesheet" href="css/style.css">
     <style>
-        /* Add these styles to style.css or directly here */
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f4f4f9;
+            color: #333;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 20px;
+            margin: 0;
+        }
+
+        h1 {
+            color: #444;
+        }
+
+        input[type="file"] {
+            margin: 20px 0;
+            padding: 10px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            background-color: #fff;
+        }
+
+        #uploadBox {
+            width: 100%;
+            max-width: 600px;
+            padding: 20px;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            background-color: #fff;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        }
+
+        #status {
+            font-size: 1.1em;
+            margin-bottom: 10px;
+        }
+
+        #thumbnailContainer {
+            display: none;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        #thumbnailWrapper {
+            position: relative;
+            width: 100%;
+            max-width: 500px;
+        }
+
+        #thumbnail {
+            width: 100%;
+            border-radius: 8px;
+        }
+
+        .overlayText {
+            position: absolute;
+            top: 8px;
+            left: 8px;
+            background-color: rgba(0, 0, 0, 0.6);
+            color: #fff;
+            padding: 5px 10px;
+            border-radius: 4px;
+        }
+
+        #infoContainer {
+            width: 100%;
+            margin-top: 20px;
+            text-align: center;
+        }
+
+        #infoContainer p {
+            margin: 5px 0;
+        }
+
+        #inputContainer {
+            display: none;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        #inputBox1, #inputBox2 {
+            width: 80px;
+            padding: 5px;
+            margin: 5px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+        }
+
+        button {
+            padding: 10px 15px;
+            margin: 5px;
+            border: none;
+            border-radius: 4px;
+            background-color: #007bff;
+            color: #fff;
+            cursor: pointer;
+        }
+
+        button:hover {
+            background-color: #0056b3;
+        }
+
+        #cancelButton {
+            background-color: #6c757d;
+        }
+
+        #cancelButton:hover {
+            background-color: #5a6268;
+        }
+
+        #editButton, #trimButton {
+            display: block;
+            margin: 10px auto;
+        }
+
         .form-field {
             margin-bottom: 15px;
         }
+
         .form-field label {
             display: block;
             font-weight: bold;
             margin-bottom: 5px;
         }
+
         .form-field textarea {
             width: 100%;
             padding: 10px;
@@ -25,10 +142,10 @@
 <body>
     <h1>Upload a Video File</h1>
     <form id="uploadForm">
-        <label for="fileInput">Select Video File:</label>
-        <input type="file" id="fileInput" name="file" accept="video/*" required><br><br>
-
-        <div id="uploadBox" style="display: none;">
+        <div id="uploadBox">
+            <label for="fileInput">Select Video File:</label>
+            <input type="file" id="fileInput" name="file" accept="video/*" required><br><br>
+            
             <div id="status">Loading...</div>
             <div id="thumbnailContainer">
                 <div id="thumbnailWrapper">
@@ -132,84 +249,58 @@
 
         // GENERATE THUMBNAIL
         const generateThumbnail = async (inputFile, time = '00:00:00') => {
-            await ffmpeg.run(
-              '-skip_frame', 'nokey',
-              '-ss', time,
-              '-i', inputFile,
-              '-vframes', '1',
-              '-q:v', '2',
-              '-an',
-              '-sn',
-              '-dn',
-              '-threads', '4',
-              '-f', 'image2',
-              'thumbnail.jpg'
-            );
-            const thumbnailData = ffmpeg.FS('readFile', 'thumbnail.jpg');
-            elements.thumbnail.src = URL.createObjectURL(new Blob([thumbnailData.buffer], { type: 'image/jpeg' }));
+            await ffmpeg.run('-i', inputFile, '-ss', time, '-frames:v', '1', 'thumbnail.jpg');
+            const data = ffmpeg.FS('readFile', 'thumbnail.jpg');
+            const url = URL.createObjectURL(new Blob([data.buffer], { type: 'image/jpeg' }));
+            elements.thumbnail.src = url;
         };
 
-        // FILE CHANGED
         const handleFileChange = async (event) => {
             const file = event.target.files[0];
             if (!file) return;
-            elements.uploadBox.style.display = 'block';
-            setStatus('Loading...');
-            if (!ffmpeg.isLoaded()) await loadFFMPEG();
-            setStatus('Processing...');
 
-            try {
-                const durationInSeconds = await extractDuration(file);
-                if (!durationInSeconds) throw new Error('Failed to get video duration');
+            setStatus('Loading file...');
+            fileLoaded = true;
+            currentFileName = file.name;
+            videoDuration = await extractDuration(file);
+            const formattedDuration = formatDuration(videoDuration);
+            elements.originalDuration.innerText = `Original Duration: ${formattedDuration}`;
+            elements.startSlider.max = videoDuration;
+            elements.startSlider.value = 0;
+            elements.startSliderValue.innerText = '00:00:00';
+            elements.startTrim.innerText = 'Start Trim Position: 00:00:00';
+            elements.endTrim.innerText = `End Trim Position: ${formattedDuration}`;
+            elements.inputBox1.value = '00:00:00';
+            elements.inputBox2.value = formattedDuration;
 
-                currentFileName = file.name;
-                fileLoaded = true;
-                videoDuration = durationInSeconds; // Set the video duration
-
-                const formattedDuration = formatDuration(durationInSeconds);
-                elements.originalDuration.innerText = `Original Duration: ${formattedDuration}`;
-                elements.startTrim.innerText = `Start Trim Position: 00:00:00`;
-                elements.endTrim.innerText = `End Trim Position: ${formattedDuration}`;
-                elements.inputBox1.value = '00:00:00';
-                elements.inputBox2.value = formattedDuration;
-                elements.durationText.innerText = formattedDuration;
-                elements.durationText.style.display = 'block';
-                elements.trimmedText.style.display = durationInSeconds > 60 ? 'block' : 'none';
-
-                // Update the slider max value to the video duration
-                elements.startSlider.max = durationInSeconds;
-
-                await generateThumbnail(file.name);
-                elements.thumbnailContainer.style.display = 'flex';
-                setStatus('');
-            } catch (error) {
-                setStatus(`Error: ${error.message}`);
-            }
+            setStatus('Generating thumbnail...');
+            await generateThumbnail(file.name);
+            setStatus('');
+            elements.thumbnailContainer.style.display = 'flex';
         };
 
         const handleEditButtonClick = () => {
-            elements.inputContainer.style.display = 'block';
-            elements.editButton.style.display = 'none';
+            elements.inputContainer.style.display = 'flex';
         };
 
         const handleCancelButtonClick = () => {
             elements.inputContainer.style.display = 'none';
-            elements.editButton.style.display = 'block';
         };
 
         const handleSaveButtonClick = async () => {
-            elements.startTrim.innerText = `Start Trim Position: ${elements.inputBox1.value}`;
-            elements.endTrim.innerText = `End Trim Position: ${elements.inputBox2.value}`;
+            const startTime = elements.inputBox1.value;
+            const endTime = elements.inputBox2.value;
+
+            if (startTime >= endTime) return alert('Start time must be less than end time.');
+
+            setStatus('Generating thumbnail...');
+            await generateThumbnail(currentFileName, startTime);
+            setStatus('');
+            elements.trimmedText.style.display = 'block';
+            elements.durationText.innerText = `Start: ${startTime} - End: ${endTime}`;
+            elements.startTrim.innerText = `Start Trim Position: ${startTime}`;
+            elements.endTrim.innerText = `End Trim Position: ${endTime}`;
             elements.inputContainer.style.display = 'none';
-            elements.editButton.style.display = 'block';
-
-            if (!fileLoaded) return alert('Please upload a video file first.');
-
-            try {
-                await generateThumbnail(currentFileName, elements.inputBox1.value);
-            } catch (error) {
-                console.error('Error generating thumbnail:', error);
-            }
         };
 
         const handleTrimButtonClick = async () => {
