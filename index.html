@@ -24,13 +24,13 @@
     </style>
 </head>
 <body>
-    <div class="container">
-        <h1>Upload a Video File</h1>
+<div class="container">
+    <h1>Upload a Video File</h1>
     <form id="uploadForm">
         <label for="fileInput">Video File</label>
         <input type="file" id="fileInput" name="file" accept="video/*" required>
         <div id="uploadBox" style="display: none;">
-<div id="status">Loading...</div>
+            <div id="status">Loading...</div>
             <div id="thumbnailContainer">
                 <div id="thumbnailWrapper">
                     <img id="thumbnail" src="" alt="Thumbnail" />
@@ -56,12 +56,13 @@
                     <button type="button" id="trimButton">Trim Video</button>
                 </div>
             </div>
+            <div id="trimmedVideoContainer"></div>
         </div>
-                                        <label for="description">Description</label>
-                    <textarea id="description" name="description" placeholder="Enter a description" rows="4" cols="50"></textarea>
-                <button type="submit">Submit</button>
+        <label for="description">Description</label>
+        <textarea id="description" name="description" placeholder="Enter a description" rows="4" cols="50"></textarea>
+        <button type="submit">Submit</button>
     </form>
-    </div>
+</div>
 
     <script src="https://cdn.jsdelivr.net/npm/@ffmpeg/ffmpeg@0.11.2/dist/ffmpeg.min.js"></script>
     <script>
@@ -212,35 +213,48 @@
             }
         };
 
-        const handleTrimButtonClick = async () => {
-            const startTime = elements.inputBox1.value.split(':').reduce((acc, time) => 60 * acc + +time);
-            const endTime = elements.inputBox2.value.split(':').reduce((acc, time) => 60 * acc + +time);
+const handleTrimButtonClick = async () => {
+    const startTime = elements.inputBox1.value.split(':').reduce((acc, time) => 60 * acc + +time);
+    const endTime = elements.inputBox2.value.split(':').reduce((acc, time) => 60 * acc + +time);
 
-            if (!fileLoaded) return alert('Please upload a video file first.');
-            if (startTime >= endTime) return alert('Start time must be less than end time.');
+    if (!fileLoaded) return alert('Please upload a video file first.');
+    if (startTime >= endTime) return alert('Start time must be less than end time.');
 
-            setStatus('Trimming video...');
+    setStatus('Trimming video...');
 
-            try {
-                const outputName = 'trimmed_video.mp4';
-                await ffmpeg.run('-i', currentFileName, '-ss', elements.inputBox1.value, '-to', elements.inputBox2.value, '-c', 'copy', outputName);
+    try {
+        const outputName = 'trimmed_video.mp4';
+        await ffmpeg.run('-i', currentFileName, '-ss', elements.inputBox1.value, '-to', elements.inputBox2.value, '-c', 'copy', outputName);
 
-                const trimmedData = ffmpeg.FS('readFile', outputName);
-                const trimmedBlob = new Blob([trimmedData.buffer], { type: 'video/mp4' });
-                const trimmedUrl = URL.createObjectURL(trimmedBlob);
+        const trimmedData = ffmpeg.FS('readFile', outputName);
+        const trimmedBlob = new Blob([trimmedData.buffer], { type: 'video/mp4' });
+        const trimmedUrl = URL.createObjectURL(trimmedBlob);
 
-                const link = document.createElement('a');
-                link.href = trimmedUrl;
-                link.download = outputName;
-                document.body.appendChild(link);
-                link.click();
-                document.body.removeChild(link);
+        // Display the trimmed video
+        const videoElement = document.createElement('video');
+        videoElement.controls = true;
+        videoElement.src = trimmedUrl;
+        videoElement.width = 600; // Adjust width as needed
+        videoElement.height = 400; // Adjust height as needed
 
-                setStatus('Video trimmed successfully. Download started.');
-            } catch (error) {
-                setStatus(`Error trimming video: ${error.message}`);
-            }
-        };
+        // Clear previous video if any
+        const existingVideo = document.getElementById('trimmedVideo');
+        if (existingVideo) {
+            existingVideo.remove();
+        }
+
+        // Set the ID for the new video element
+        videoElement.id = 'trimmedVideo';
+
+        // Append the video element to the DOM
+        elements.uploadBox.appendChild(videoElement);
+
+        setStatus('Video trimmed successfully.');
+    } catch (error) {
+        setStatus(`Error trimming video: ${error.message}`);
+    }
+};
+
 
         const handleSliderChange = () => {
             const sliderValue = elements.startSlider.value;
