@@ -37,6 +37,22 @@ body {
             border-radius: 8px;
         }
 
+        .container {width: 70%; margin: 0 auto;background: white;padding: 20px;}
+        input {display: block;margin-bottom:15px;}
+        .form-field {
+            margin-bottom: 15px;
+        }
+        label {
+            display: block;
+            font-weight: bold;
+            margin-bottom: 5px;
+        }
+        textarea {
+            width: 100%;
+            padding-bottom: 20px;
+            box-sizing: border-box;
+        }
+
         .overlayText {
             position: absolute;
             top: 8px;
