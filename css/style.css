@@ -26,8 +26,6 @@ body {
 
         #thumbnailContainer {
             display: none;
-            flex-direction: column;
-            align-items: center;
         }
 
         #thumbnailWrapper {
