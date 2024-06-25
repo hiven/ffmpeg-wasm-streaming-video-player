@@ -6,7 +6,7 @@
     <title>Video Duration Extractor with Thumbnail</title>
     <link rel="stylesheet" href="css/style.css">
     <style>
-        form {width: 70%; margin: 0 auto;background: white;padding: 20px;}
+        .container {width: 70%; margin: 0 auto;background: white;padding: 20px;}
         input {display: block;padding-bottom:15px;}
         .form-field {
             margin-bottom: 15px;
@@ -24,7 +24,8 @@
     </style>
 </head>
 <body>
-    <h1>Upload a Video File</h1>
+    <div class="container">
+        <h1>Upload a Video File</h1>
     <form id="uploadForm">
         <label for="fileInput">Video File</label>
         <input type="file" id="fileInput" name="file" accept="video/*" required>
@@ -60,6 +61,7 @@
                     <textarea id="description" name="description" placeholder="Enter a description" rows="4" cols="50"></textarea>
                 <button type="submit">Submit</button>
     </form>
+    </div>
 
     <script src="https://cdn.jsdelivr.net/npm/@ffmpeg/ffmpeg@0.11.2/dist/ffmpeg.min.js"></script>
     <script>
