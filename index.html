@@ -5,6 +5,22 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Video Duration Extractor with Thumbnail</title>
     <link rel="stylesheet" href="css/style.css">
+    <style>
+        /* Add these styles to style.css or directly here */
+        .form-field {
+            margin-bottom: 15px;
+        }
+        .form-field label {
+            display: block;
+            font-weight: bold;
+            margin-bottom: 5px;
+        }
+        .form-field textarea {
+            width: 100%;
+            padding: 10px;
+            box-sizing: border-box;
+        }
+    </style>
 </head>
 <body>
     <h1>Upload a Video File</h1>
@@ -38,12 +54,13 @@
                     <button type="button" id="editButton">Edit Trim</button>
                     <button type="button" id="trimButton">Trim Video</button>
                 </div>
-                <label for="description">Description:</label>
-                <textarea id="description" name="description" placeholder="Enter a description" rows="4" cols="50"></textarea>
+                <div class="form-field">
+                    <label for="description">Description:</label>
+                    <textarea id="description" name="description" placeholder="Enter a description" rows="4" cols="50"></textarea>
+                </div>
+                <button type="submit">Submit</button>
             </div>
         </div>
-
-        <button type="submit">Submit</button>
     </form>
 
     <script src="https://cdn.jsdelivr.net/npm/@ffmpeg/ffmpeg@0.11.2/dist/ffmpeg.min.js"></script>
@@ -259,6 +276,5 @@
         elements.startSlider.addEventListener('input', handleSliderChange);
         elements.uploadForm.addEventListener('submit', handleSubmit);
     </script>
-
 </body>
 </html>
