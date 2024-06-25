@@ -24,45 +24,45 @@
     </style>
 </head>
 <body>
-    <div class="container">
-        <h1>Upload a Video File</h1>
-        <form id="uploadForm">
-            <label for="fileInput">Video File</label>
-            <input type="file" id="fileInput" name="file" accept="video/*" required>
-            <div id="uploadBox" style="display: none;">
-                <div id="status">Loading...</div>
-                <div id="thumbnailContainer">
-                    <div id="thumbnailWrapper">
-                        <img id="thumbnail" src="" alt="Thumbnail" />
-                        <div id="trimmedText" class="overlayText">Trimmed</div>
-                        <div id="durationText" class="overlayText">0s</div>
-                    </div>
-                    <div id="infoContainer">
-                        <p id="originalDuration">Original Duration: 00:00:00</p>
-                        <p id="startTrim">Start Trim Position: 00:00:00</p>
-                        <p id="endTrim">End Trim Position: 00:00:00</p>
-                        <div id="inputContainer">
-                            <input type="text" id="inputBox1" value="00:00:00" pattern="\d{2}:\d{2}:\d{2}" placeholder="00:00:00">
-                            <input type="text" id="inputBox2" value="00:00:00" pattern="\d{2}:\d{2}:\d{2}" placeholder="00:00:00"><br><br>
-                            
-                            <label for="startSlider">Set Start Position:</label>
-                            <input type="range" id="startSlider" name="startSlider" min="0" max="100" value="0" step="1">
-                            <span id="startSliderValue">00:00:00</span><br><br>
-
-                            <button type="button" id="saveButton">Save</button>
-                            <button type="button" id="cancelButton">Cancel</button>
-                        </div>
-                        <button type="button" id="editButton">Edit Trim</button>
-                        <button type="button" id="trimButton">Trim Video</button>
-                    </div>
+<div class="container">
+    <h1>Upload a Video File</h1>
+    <form id="uploadForm">
+        <label for="fileInput">Video File</label>
+        <input type="file" id="fileInput" name="file" accept="video/*" required>
+        <div id="uploadBox" style="display: none;">
+            <div id="status">Loading...</div>
+            <div id="thumbnailContainer">
+                <div id="thumbnailWrapper">
+                    <img id="thumbnail" src="" alt="Thumbnail" />
+                    <div id="trimmedText" class="overlayText">Trimmed</div>
+                    <div id="durationText" class="overlayText">0s</div>
                 </div>
-                <div id="trimmedVideoContainer"></div>
+                <div id="infoContainer">
+                    <p id="originalDuration">Original Duration: 00:00:00</p>
+                    <p id="startTrim">Start Trim Position: 00:00:00</p>
+                    <p id="endTrim">End Trim Position: 00:00:00</p>
+                    <div id="inputContainer">
+                        <input type="text" id="inputBox1" value="00:00:00" pattern="\d{2}:\d{2}:\d{2}" placeholder="00:00:00">
+                        <input type="text" id="inputBox2" value="00:00:00" pattern="\d{2}:\d{2}:\d{2}" placeholder="00:00:00"><br><br>
+                        
+                        <label for="startSlider">Set Start Position:</label>
+                        <input type="range" id="startSlider" name="startSlider" min="0" max="100" value="0" step="1">
+                        <span id="startSliderValue">00:00:00</span><br><br>
+
+                        <button type="button" id="saveButton">Save</button>
+                        <button type="button" id="cancelButton">Cancel</button>
+                    </div>
+                    <button type="button" id="editButton">Edit Trim</button>
+                    <button type="button" id="trimButton">Trim Video</button>
+                </div>
             </div>
-            <label for="description">Description</label>
-            <textarea id="description" name="description" placeholder="Enter a description" rows="4" cols="50"></textarea>
-            <button type="submit">Submit</button>
-        </form>
-    </div>
+            <div id="trimmedVideoContainer"></div>
+        </div>
+        <label for="description">Description</label>
+        <textarea id="description" name="description" placeholder="Enter a description" rows="4" cols="50"></textarea>
+        <button type="submit">Submit</button>
+    </form>
+</div>
 
     <script src="https://cdn.jsdelivr.net/npm/@ffmpeg/ffmpeg@0.11.2/dist/ffmpeg.min.js"></script>
     <script>
@@ -72,7 +72,6 @@
         let fileLoaded = false;
         let currentFileName = '';
         let videoDuration = 0; // To store the video duration in seconds
-        let videoTrimmed = false; // Flag to check if video has been trimmed
 
         const loadFFMPEG = () => {
             if (!ffmpegLoadPromise) {
@@ -199,77 +198,88 @@
             elements.editButton.style.display = 'block';
         };
 
-        const handleSaveButtonClick = () => {
-            const startTrimPosition = elements.inputBox1.value;
-            const endTrimPosition = elements.inputBox2.value;
-            elements.startTrim.innerText = `Start Trim Position: ${startTrimPosition}`;
-            elements.endTrim.innerText = `End Trim Position: ${endTrimPosition}`;
+        const handleSaveButtonClick = async () => {
+            elements.startTrim.innerText = `Start Trim Position: ${elements.inputBox1.value}`;
+            elements.endTrim.innerText = `End Trim Position: ${elements.inputBox2.value}`;
             elements.inputContainer.style.display = 'none';
             elements.editButton.style.display = 'block';
-        };
-
-        // HANDLE SLIDER INPUT
-        elements.startSlider.addEventListener('input', () => {
-            const sliderValue = elements.startSlider.value;
-            const formattedTime = formatDuration(sliderValue);
-            elements.startSliderValue.innerText = formattedTime;
-            elements.inputBox1.value = formattedTime;
-        });
-
-        const handleTrimButtonClick = async () => {
-            const startTime = elements.inputBox1.value.split(':').reduce((acc, time) => 60 * acc + +time);
-            const endTime = elements.inputBox2.value.split(':').reduce((acc, time) => 60 * acc + +time);
 
             if (!fileLoaded) return alert('Please upload a video file first.');
-            if (startTime >= endTime) return alert('Start time must be less than end time.');
-
-            setStatus('Trimming video...');
 
             try {
-                const outputName = 'trimmed_video.mp4';
-                await ffmpeg.run('-i', currentFileName, '-ss', elements.inputBox1.value, '-to', elements.inputBox2.value, '-c', 'copy', outputName);
-
-                const trimmedData = ffmpeg.FS('readFile', outputName);
-                const trimmedBlob = new Blob([trimmedData.buffer], { type: 'video/mp4' });
-                const trimmedUrl = URL.createObjectURL(trimmedBlob);
-
-                // Display the trimmed video
-                const videoElement = document.createElement('video');
-                videoElement.controls = true;
-                videoElement.src = trimmedUrl;
-                videoElement.width = 600; // Adjust width as needed
-                videoElement.height = 400; // Adjust height as needed
-
-                // Clear previous video if any
-                const existingVideo = document.getElementById('trimmedVideo');
-                if (existingVideo) {
-                    existingVideo.remove();
-                }
-
-                // Set the ID for the new video element
-                videoElement.id = 'trimmedVideo';
-
-                // Append the video element to the DOM
-                elements.trimmedVideoContainer.appendChild(videoElement);
-
-                setStatus('Video trimmed successfully.');
-                videoTrimmed = true; // Set the trimmed flag to true
+                await generateThumbnail(currentFileName, elements.inputBox1.value);
             } catch (error) {
-                setStatus(`Error trimming video: ${error.message}`);
+                console.error('Error generating thumbnail:', error);
             }
+        };
+
+const handleTrimButtonClick = async () => {
+    const startTime = elements.inputBox1.value.split(':').reduce((acc, time) => 60 * acc + +time);
+    const endTime = elements.inputBox2.value.split(':').reduce((acc, time) => 60 * acc + +time);
+
+    if (!fileLoaded) return alert('Please upload a video file first.');
+    if (startTime >= endTime) return alert('Start time must be less than end time.');
+
+    setStatus('Trimming video...');
+
+    try {
+        const outputName = 'trimmed_video.mp4';
+        await ffmpeg.run('-i', currentFileName, '-ss', elements.inputBox1.value, '-to', elements.inputBox2.value, '-c', 'copy', outputName);
+
+        const trimmedData = ffmpeg.FS('readFile', outputName);
+        const trimmedBlob = new Blob([trimmedData.buffer], { type: 'video/mp4' });
+        const trimmedUrl = URL.createObjectURL(trimmedBlob);
+
+        // Display the trimmed video
+        const videoElement = document.createElement('video');
+        videoElement.controls = true;
+        videoElement.src = trimmedUrl;
+        videoElement.width = 600; // Adjust width as needed
+        videoElement.height = 400; // Adjust height as needed
+
+        // Clear previous video if any
+        const existingVideo = document.getElementById('trimmedVideo');
+        if (existingVideo) {
+            existingVideo.remove();
+        }
+
+        // Set the ID for the new video element
+        videoElement.id = 'trimmedVideo';
+
+        // Append the video element to the DOM
+        elements.uploadBox.appendChild(videoElement);
+
+        setStatus('Video trimmed successfully.');
+    } catch (error) {
+        setStatus(`Error trimming video: ${error.message}`);
+    }
+};
+
+
+        const handleSliderChange = () => {
+            const sliderValue = elements.startSlider.value;
+            const formattedTime = formatDuration(sliderValue);
+            elements.inputBox1.value = formattedTime;
+            elements.startSliderValue.innerText = formattedTime;
         };
 
         const handleSubmit = async (event) => {
             event.preventDefault();
-            
-            if (!videoTrimmed) {
-                await handleTrimButtonClick();
+            if (!fileLoaded) return alert('Please upload a video file first.');
+
+            const formData = new FormData(elements.uploadForm);
+            try {
+                const response = await fetch('YOUR_API_ENDPOINT', {
+                    method: 'POST',
+                    body: formData
+                });
+
+                if (!response.ok) throw new Error('Failed to upload');
+
+                alert('File uploaded successfully');
+            } catch (error) {
+                alert(`Error: ${error.message}`);
             }
-
-            // Proceed with form submission or further processing
-            setStatus('Submitting form...');
-
-            // Additional form submission logic here
         };
 
         elements.fileInput.addEventListener('change', handleFileChange);
@@ -277,6 +287,7 @@
         elements.cancelButton.addEventListener('click', handleCancelButtonClick);
         elements.saveButton.addEventListener('click', handleSaveButtonClick);
         elements.trimButton.addEventListener('click', handleTrimButtonClick);
+        elements.startSlider.addEventListener('input', handleSliderChange);
         elements.uploadForm.addEventListener('submit', handleSubmit);
     </script>
 </body>
