@@ -111,3 +111,19 @@ body {
             display: block;
             margin: 10px auto;
         }
+
+
+        .tag {
+            display: inline-block;
+            padding: 5px 10px;
+            margin: 5px;
+            background-color: #f0f0f0;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+        .tag.selected {
+            background-color: #007bff;
+            color: white;
+            border-color: #007bff;
+        }
