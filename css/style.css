@@ -38,7 +38,7 @@ body {
         }
 
         .container {width: 70%; margin: 0 auto;background: white;padding: 20px;}
-        input, select {display: block;margin-bottom:15px;}
+        input, select, textarea {display: block;margin-bottom:15px;}
         .form-field {
             margin-bottom: 15px;
         }
