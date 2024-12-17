@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>FFMPEG File Upload</title>
+</head>
+<body>
+    <h1>Upload a Video File</h1>
+    <input type="file" id="fileInput" accept="video/*" />
+    <div id="status">Loading FFMPEG...</div>
+
+    <script src="https://cdn.jsdelivr.net/npm/@ffmpeg/ffmpeg@0.11.2/dist/ffmpeg.min.js"></script>
+    <script>
+        const { createFFmpeg, fetchFile } = FFmpeg;
+        const ffmpeg = createFFmpeg({ log: false });
+        let ffmpegLoadPromise;
+
+        // Load FFMPEG on page load
+        document.addEventListener("DOMContentLoaded", async () => {
+            const status = document.getElementById('status');
+            status.innerText = 'Loading FFMPEG...';
+            try {
+                ffmpegLoadPromise = ffmpeg.load();
+                await ffmpegLoadPromise;
+                status.innerText = 'FFMPEG Loaded. Ready to process videos.';
+            } catch (error) {
+                status.innerText = 'Failed to load FFMPEG.';
+                console.error(error);
+            }
+        });
+
+        // Extract duration of the uploaded video
+        const extractVideoDuration = async (file) => {
+            const status = document.getElementById('status');
+            status.innerText = 'Processing video...';
+            try {
+                const fileData = await fetchFile(file);
+                await ffmpeg.FS('writeFile', file.name, fileData);
+
+                let ffmpegOutput = '';
+                ffmpeg.setLogger(({ type, message }) => {
+                    if (type === 'fferr' || type === 'ffout') {
+                        ffmpegOutput += message + '\n';
+                    }
+                });
+
+                await ffmpeg.run('-i', file.name);
+
+                // Extract duration from FFmpeg output
+                const durationMatch = ffmpegOutput.match(/Duration: (\d\d:\d\d:\d\d\.\d\d)/);
+                if (durationMatch) {
+                    const duration = durationMatch[1];
+                    status.innerText = `Video Duration: ${duration}`;
+                    console.log(`Video Duration: ${duration}`);
+                } else {
+                    throw new Error('Unable to retrieve duration.');
+                }
+            } catch (error) {
+                status.innerText = 'Error processing the video.';
+                console.error(error);
+            }
+        };
+
+        // File input change event
+        document.getElementById('fileInput').addEventListener('change', async (event) => {
+            const file = event.target.files[0];
+            if (!file) return;
+
+            await ffmpegLoadPromise; // Ensure FFMPEG is loaded before processing
+            await extractVideoDuration(file);
+        });
+    </script>
+</body>
+</html>
