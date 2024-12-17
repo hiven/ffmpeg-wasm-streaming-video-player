@@ -1,0 +1,121 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>FFMPEG: Modular Video Processing</title>
+</head>
+<body>
+    <h1>Upload a Video File</h1>
+    <input type="file" id="fileInput" accept="video/*" />
+    <div id="status">Loading FFMPEG...</div>
+
+    <div>
+        <h2>Video Details:</h2>
+        <p id="videoDetails">Duration: N/A</p>
+    </div>
+
+    <div>
+        <h2>Thumbnails:</h2>
+        <p>Start Frame:</p>
+        <img id="thumbnailStart" alt="Start Thumbnail" style="display: none; max-width: 320px;" />
+        <p>End Frame:</p>
+        <img id="thumbnailEnd" alt="End Thumbnail" style="display: none; max-width: 320px;" />
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/@ffmpeg/ffmpeg@0.11.2/dist/ffmpeg.min.js"></script>
+    <script>
+        const { createFFmpeg, fetchFile } = FFmpeg;
+
+        // Thumbnail Generator Module
+        class ThumbnailGenerator {
+            constructor(ffmpegInstance) {
+                this.ffmpeg = ffmpegInstance; // Pass an existing FFMPEG instance
+            }
+
+            // Get Video Duration
+            async getVideoDuration(inputFile) {
+                try {
+                    await this.ffmpeg.run('-i', inputFile);
+                } catch (e) {
+                    const match = e.message.match(/Duration: (\d+):(\d+):(\d+\.\d+)/);
+                    if (match) {
+                        const hours = parseInt(match[1]);
+                        const minutes = parseInt(match[2]);
+                        const seconds = parseFloat(match[3]);
+                        return (hours * 3600) + (minutes * 60) + seconds; // Duration in seconds
+                    }
+                }
+                return null;
+            }
+
+            // Generate a Thumbnail at Specific Time
+            async generateThumbnail(inputFile, time, outputName) {
+                await this.ffmpeg.run(
+                    '-ss', time,      // Seek to the specified time
+                    '-i', inputFile,  // Input file
+                    '-vframes', '1',  // Extract 1 frame
+                    '-q:v', '2',      // Quality
+                    outputName        // Output file name
+                );
+
+                const thumbnailData = this.ffmpeg.FS('readFile', outputName);
+                return new Blob([thumbnailData.buffer], { type: 'image/jpeg' });
+            }
+        }
+
+        // Main Logic
+        const ffmpeg = createFFmpeg({ log: false }); // Single FFMPEG instance
+        const handleFileChange = async (event) => {
+            const file = event.target.files[0];
+            if (!file) return;
+
+            const status = document.getElementById('status');
+            const details = document.getElementById('videoDetails');
+            const thumbnailStartImg = document.getElementById('thumbnailStart');
+            const thumbnailEndImg = document.getElementById('thumbnailEnd');
+
+            status.innerText = 'Loading FFMPEG...';
+            try {
+                // Load FFMPEG
+                if (!ffmpeg.isLoaded()) await ffmpeg.load();
+                const generator = new ThumbnailGenerator(ffmpeg);
+
+                // Write the input file to FFMPEG's filesystem
+                const fileData = await fetchFile(file);
+                const inputFile = file.name;
+                await ffmpeg.FS('writeFile', inputFile, fileData);
+
+                // Get video duration
+                status.innerText = 'Extracting video details...';
+                const duration = await generator.getVideoDuration(inputFile);
+                details.innerText = `Duration: ${duration ? duration.toFixed(2) + ' seconds' : 'N/A'}`;
+
+                // Generate Start Thumbnail
+                status.innerText = 'Generating start thumbnail...';
+                const startBlob = await generator.generateThumbnail(inputFile, '00:00:00', 'start.jpg');
+                thumbnailStartImg.src = URL.createObjectURL(startBlob);
+                thumbnailStartImg.style.display = 'block';
+
+                // Generate End Thumbnail
+                if (duration) {
+                    const endTime = Math.max(duration - 1, 0); // Avoid invalid time
+                    const endTimestamp = new Date(endTime * 1000).toISOString().substr(11, 8);
+                    status.innerText = 'Generating end thumbnail...';
+                    const endBlob = await generator.generateThumbnail(inputFile, endTimestamp, 'end.jpg');
+                    thumbnailEndImg.src = URL.createObjectURL(endBlob);
+                    thumbnailEndImg.style.display = 'block';
+                }
+
+                status.innerText = 'Thumbnails generated successfully.';
+            } catch (error) {
+                console.error(error);
+                status.innerText = 'Error processing video.';
+            }
+        };
+
+        // Attach Event Listener
+        document.getElementById('fileInput').addEventListener('change', handleFileChange);
+    </script>
+</body>
+</html>
