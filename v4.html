@@ -1,0 +1,126 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>FFMPEG: Video Info & Thumbnails</title>
+</head>
+<body>
+    <h1>Upload a Video File</h1>
+    <input type="file" id="fileInput" accept="video/*" />
+    <div id="status">Loading FFMPEG...</div>
+
+    <div>
+        <h2>Video Details:</h2>
+        <p id="videoDetails">Duration: N/A</p>
+    </div>
+
+    <div>
+        <h2>Thumbnails:</h2>
+        <p>Start Frame:</p>
+        <img id="thumbnailStart" alt="Start Thumbnail" style="display: none; max-width: 320px;" />
+        <p>End Frame:</p>
+        <img id="thumbnailEnd" alt="End Thumbnail" style="display: none; max-width: 320px;" />
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/@ffmpeg/ffmpeg@0.11.2/dist/ffmpeg.min.js"></script>
+    <script>
+        const { createFFmpeg, fetchFile } = FFmpeg;
+        const ffmpeg = createFFmpeg({ log: false });
+        let ffmpegLoadPromise;
+
+        // Load FFMPEG on page load
+        document.addEventListener("DOMContentLoaded", async () => {
+            const status = document.getElementById('status');
+            status.innerText = 'Loading FFMPEG...';
+            try {
+                ffmpegLoadPromise = ffmpeg.load();
+                await ffmpegLoadPromise;
+                status.innerText = 'FFMPEG Loaded. Ready to process videos.';
+            } catch (error) {
+                status.innerText = 'Failed to load FFMPEG.';
+                console.error(error);
+            }
+        });
+
+        // Get video duration using ffprobe
+        const getVideoDuration = async (inputFile) => {
+            try {
+                const probeResult = await ffmpeg.run(
+                    '-i', inputFile, '-hide_banner', '-analyzeduration', '0'
+                );
+            } catch (e) {
+                const match = e.message.match(/Duration: (\d+):(\d+):(\d+\.\d+)/);
+                if (match) {
+                    const hours = parseInt(match[1]);
+                    const minutes = parseInt(match[2]);
+                    const seconds = parseFloat(match[3]);
+                    return (hours * 3600) + (minutes * 60) + seconds; // Duration in seconds
+                }
+            }
+            return null;
+        };
+
+        // Generate Thumbnail
+        const generateThumbnail = async (inputFile, time, outputName) => {
+            await ffmpeg.run(
+                '-ss', time,         // Seek to time
+                '-i', inputFile,     // Input file
+                '-vframes', '1',     // Extract 1 frame
+                '-q:v', '2',         // Quality
+                outputName           // Output file name
+            );
+            const thumbnailData = ffmpeg.FS('readFile', outputName);
+            return new Blob([thumbnailData.buffer], { type: 'image/jpeg' });
+        };
+
+        // Main file handler
+        const handleFileChange = async (event) => {
+            const file = event.target.files[0];
+            if (!file) return;
+
+            const status = document.getElementById('status');
+            const details = document.getElementById('videoDetails');
+            status.innerText = 'Processing video...';
+
+            try {
+                await ffmpegLoadPromise; // Ensure FFMPEG is loaded
+                const fileData = await fetchFile(file);
+                await ffmpeg.FS('writeFile', file.name, fileData);
+
+                // Get video duration
+                const duration = await getVideoDuration(file.name);
+                details.innerText = `Duration: ${duration ? duration.toFixed(2) + ' seconds' : 'N/A'}`;
+
+                // Generate Start Thumbnail
+                status.innerText = 'Generating start thumbnail...';
+                const startThumbnailBlob = await generateThumbnail(file.name, '00:00:00', 'start.jpg');
+                const startUrl = URL.createObjectURL(startThumbnailBlob);
+                const thumbnailStart = document.getElementById('thumbnailStart');
+                thumbnailStart.src = startUrl;
+                thumbnailStart.style.display = 'block';
+
+                // Generate End Thumbnail
+                if (duration) {
+                    const endTime = Math.max(duration - 1, 0); // Avoid invalid end times
+                    const endTimestamp = new Date(endTime * 1000).toISOString().substr(11, 8); // Convert to HH:MM:SS
+                    status.innerText = 'Generating end thumbnail...';
+                    const endThumbnailBlob = await generateThumbnail(file.name, endTimestamp, 'end.jpg');
+                    const endUrl = URL.createObjectURL(endThumbnailBlob);
+                    const thumbnailEnd = document.getElementById('thumbnailEnd');
+                    thumbnailEnd.src = endUrl;
+                    thumbnailEnd.style.display = 'block';
+                }
+
+                status.innerText = 'Thumbnails generated successfully.';
+            } catch (error) {
+                status.innerText = 'Error processing the video.';
+                console.error(error);
+            }
+        };
+
+        // File input change event
+        document.getElementById('fileInput').addEventListener('change', handleFileChange);
+    </script>
+</body>
+</html>
