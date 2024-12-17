@@ -1,0 +1,151 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <script src="https://cdn.jsdelivr.net/npm/@ffmpeg/ffmpeg@0.11.2/dist/ffmpeg.min.js"></script>
+    <link rel="stylesheet" href="css/style.css">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <style>
+        .container {
+            width: 800px;
+            margin: 0 auto; /* Center the container */
+            text-align: center;
+        }
+
+        /* Big image display */
+        #big-image {
+            width: 100%;
+            height: auto;
+            margin-bottom: 20px;
+            border: 2px solid #ddd;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+        }
+
+        /* Thumbnails container */
+        .thumbnails {
+            display: flex;
+            gap: 10px;
+            overflow-x: auto; /* Allow scrolling if too many thumbnails */
+            justify-content: center;
+        }
+
+        /* Individual thumbnail styling */
+        .thumbnail img {
+            width: 100px;
+            height: auto;
+            cursor: pointer;
+            border: 2px solid transparent;
+            transition: border 0.2s ease;
+        }
+
+        .thumbnail img:hover {
+            border: 2px solid #007bff;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h3>Video Thumbnails Preview</h3>
+
+        <!-- Big Image Display -->
+        <img id="big-image" src="" alt="Big Preview">
+
+        <!-- Upload Form -->
+        <form action="/upload" method="post" enctype="multipart/form-data" id="uploadForm">
+            <div style="margin-bottom: 10px;">
+                <label for="uploader">Upload Video:</label><br>
+                <input type="file" name="videoFile" id="uploader">
+            </div>
+            <button type="submit" id="submitButton">Submit</button>
+        </form>
+
+        <!-- Thumbnails Section -->
+        <div class="thumbnails" id="thumbnails"></div>
+        
+        <p id="message"></p>
+    </div>
+
+    <script>
+        const { createFFmpeg, fetchFile } = FFmpeg;
+        const ffmpeg = createFFmpeg({ log: false });
+        let originalFile = null;
+
+        document.addEventListener("DOMContentLoaded", function() {
+            const uploader = document.getElementById('uploader');
+            const thumbnailsContainer = document.getElementById('thumbnails');
+            const message = document.getElementById('message');
+            const bigImage = document.getElementById('big-image');
+
+            uploader.addEventListener('change', handleFileChange);
+
+            async function handleFileChange() {
+                const files = uploader.files;
+                originalFile = files[0];
+
+                const video = document.createElement('video');
+                video.src = URL.createObjectURL(originalFile);
+                video.onloadedmetadata = async function() {
+                    const duration = video.duration;
+                    await generateThumbnails(duration);
+                };
+            }
+
+            async function generateThumbnails(duration) {
+                try {
+                    if (!ffmpeg.isLoaded()) {
+                        message.innerHTML = 'Loading FFmpeg...';
+                        await ffmpeg.load();
+                    }
+                    message.innerHTML = 'Generating thumbnails...';
+
+                    ffmpeg.FS('writeFile', originalFile.name, await fetchFile(originalFile));
+
+                    const thumbnailCount = 10; // Generate fewer thumbnails for demo
+                    const interval = duration / thumbnailCount;
+                    thumbnailsContainer.innerHTML = '';
+
+                    const args = [
+                        '-i', originalFile.name,
+                        '-vf', `fps=1/${interval},scale=320:180:flags=bilinear`,
+                        'thumbnail%03d.jpg'
+                    ];
+
+                    await ffmpeg.run(...args);
+
+                    let firstImageSet = false;
+
+                    for (let i = 0; i < thumbnailCount; i++) {
+                        const outputImageName = `thumbnail${String(i + 1).padStart(3, '0')}.jpg`;
+                        const data = ffmpeg.FS('readFile', outputImageName);
+
+                        const img = document.createElement('img');
+                        img.src = URL.createObjectURL(new Blob([data.buffer], { type: 'image/jpeg' }));
+                        img.alt = `Thumbnail ${i + 1}`;
+                        img.classList.add('thumbnail-img');
+
+                        // Show the first thumbnail as big image initially
+                        if (!firstImageSet) {
+                            bigImage.src = img.src;
+                            firstImageSet = true;
+                        }
+
+                        // Hover effect to change big image
+                        img.addEventListener('mouseover', () => {
+                            bigImage.src = img.src;
+                        });
+
+                        const thumbContainer = document.createElement('div');
+                        thumbContainer.classList.add('thumbnail');
+                        thumbContainer.appendChild(img);
+                        thumbnailsContainer.appendChild(thumbContainer);
+                    }
+
+                    message.innerHTML = 'Thumbnails generated successfully!';
+                } catch (error) {
+                    message.innerHTML = `Error: ${error.message}`;
+                    console.error(error);
+                }
+            }
+        });
+    </script>
+</body>
+</html>
