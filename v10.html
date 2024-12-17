@@ -1,0 +1,162 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>FFMPEG File Upload with Thumbnail, Duration, and Transcribing</title>
+</head>
+<body>
+    <h1>Upload a Video File</h1>
+    <input type="file" id="fileInput" accept="video/*" />
+    <div id="status">Loading FFMPEG...</div>
+    <div>
+        <h2>Video Duration:</h2>
+        <p id="duration">N/A</p>
+    </div>
+    <div>
+        <h2>Thumbnail:</h2>
+        <img id="thumbnail" alt="Thumbnail will appear here" style="display: none; max-width: 320px;" />
+    </div>
+
+    <button id="transcribeButton" style="display: none;">Transcribe 10s Clip</button>
+    <div id="transcribeStatus"></div>
+    <div>
+        <h2>Generated 10-Second Clip:</h2>
+        <video id="outputVideo" controls style="display: none; max-width: 100%;"></video>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/@ffmpeg/ffmpeg@0.11.2/dist/ffmpeg.min.js"></script>
+    <script>
+        const { createFFmpeg, fetchFile } = FFmpeg;
+        const ffmpeg = createFFmpeg({ log: true });
+        let ffmpegLoadPromise;
+
+        // Load FFMPEG on page load
+        document.addEventListener("DOMContentLoaded", async () => {
+            const status = document.getElementById('status');
+            status.innerText = 'Loading FFMPEG...';
+            try {
+                ffmpegLoadPromise = ffmpeg.load();
+                await ffmpegLoadPromise;
+                status.innerText = 'FFMPEG Loaded. Ready to process videos.';
+            } catch (error) {
+                status.innerText = 'Failed to load FFMPEG.';
+                console.error(error);
+            }
+        });
+
+        // Generate Thumbnail
+        const generateThumbnail = async (inputFile, time = '00:00:00') => {
+            const status = document.getElementById('status');
+            status.innerText = 'Generating thumbnail...';
+            try {
+                await ffmpeg.run('-ss', time, '-i', inputFile, '-vframes', '1', '-q:v', '2', 'thumbnail.jpg');
+
+                const thumbnailData = ffmpeg.FS('readFile', 'thumbnail.jpg');
+                const thumbnailBlob = new Blob([thumbnailData.buffer], { type: 'image/jpeg' });
+                const thumbnailUrl = URL.createObjectURL(thumbnailBlob);
+
+                const thumbnailElement = document.getElementById('thumbnail');
+                thumbnailElement.src = thumbnailUrl;
+                thumbnailElement.style.display = 'block';
+                status.innerText = 'Thumbnail generated successfully.';
+            } catch (error) {
+                status.innerText = 'Error generating thumbnail.';
+                console.error(error);
+            }
+        };
+
+        // Extract Duration
+        const extractDuration = async (fileName) => {
+            let ffmpegOutput = '';
+            ffmpeg.setLogger(({ type, message }) => {
+                if (type === 'fferr' || type === 'ffout') {
+                    ffmpegOutput += message + '\n';
+                }
+            });
+
+            await ffmpeg.run('-i', fileName);
+
+            const durationMatch = ffmpegOutput.match(/Duration:\s(\d{2}:\d{2}:\d{2}\.\d{2})/);
+            return durationMatch ? durationMatch[1] : 'Unknown';
+        };
+
+        // Generate a 10-second video clip with percentage progress
+        const transcribeClip = async (fileName) => {
+            const status = document.getElementById('transcribeStatus');
+            const videoElement = document.getElementById('outputVideo');
+            status.innerText = 'Generating 10-second clip...';
+
+            const totalDuration = 10; // 10 seconds
+
+            ffmpeg.setLogger(({ type, message }) => {
+                if (type === 'ffout') {
+                    const timeMatch = message.match(/time=\s*([\d:.]+)/);
+                    if (timeMatch) {
+                        const currentTime = timeToSeconds(timeMatch[1]);
+                        const progress = Math.min((currentTime / totalDuration) * 100, 100);
+                        status.innerText = `Processing... ${progress.toFixed(2)}% complete`;
+                    }
+                }
+            });
+
+            try {
+                await ffmpeg.run('-ss', '00:00:00', '-i', fileName, '-t', '10', '-c:v', 'libx264', '-c:a', 'aac', 'output.mp4');
+
+                const outputData = ffmpeg.FS('readFile', 'output.mp4');
+                const outputBlob = new Blob([outputData.buffer], { type: 'video/mp4' });
+                const outputUrl = URL.createObjectURL(outputBlob);
+
+                videoElement.src = outputUrl;
+                videoElement.style.display = 'block';
+                status.innerText = '10-second clip generated successfully.';
+            } catch (error) {
+                status.innerText = 'Error generating 10-second clip.';
+                console.error(error);
+            }
+        };
+
+        // Helper function to convert "hh:mm:ss" or "mm:ss" time format to seconds
+        const timeToSeconds = (time) => {
+            const parts = time.split(':').reverse();
+            let seconds = 0;
+            for (let i = 0; i < parts.length; i++) {
+                seconds += parseFloat(parts[i]) * Math.pow(60, i);
+            }
+            return seconds;
+        };
+
+        // Handle File Input Change
+        const handleFileChange = async (event) => {
+            const file = event.target.files[0];
+            if (!file) return;
+
+            const status = document.getElementById('status');
+            status.innerText = 'Processing video...';
+
+            try {
+                await ffmpegLoadPromise;
+                const fileData = await fetchFile(file);
+                await ffmpeg.FS('writeFile', file.name, fileData);
+
+                // Extract Duration
+                const duration = await extractDuration(file.name);
+                document.getElementById('duration').innerText = duration;
+
+                // Generate Thumbnail
+                await generateThumbnail(file.name, '00:00:00');
+
+                // Enable Transcribe Button
+                const transcribeButton = document.getElementById('transcribeButton');
+                transcribeButton.style.display = 'block';
+                transcribeButton.onclick = () => transcribeClip(file.name);
+            } catch (error) {
+                status.innerText = 'Error processing the video.';
+                console.error(error);
+            }
+        };
+
+        document.getElementById('fileInput').addEventListener('change', handleFileChange);
+    </script>
+</body>
+</html>
