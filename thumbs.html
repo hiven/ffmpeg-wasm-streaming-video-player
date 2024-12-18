@@ -22,9 +22,13 @@
         .thumbnails {
             display: flex;
             margin-top: 20px;
+            justify-content: space-between; /* Space thumbnails evenly */
+            width: 100%; /* Match the width of the container */
         }
+        
         .thumbnail img {
-            width: calc(100% / 6); /* Ensure all thumbnails fit within the big picture's width */
+            width: calc(100% / 6); /* Distribute six thumbnails evenly */
+            max-width: 80px; /* Optional: limit thumbnail size for better layout */
             height: 100px;
             object-fit: cover;
             object-position: center;
