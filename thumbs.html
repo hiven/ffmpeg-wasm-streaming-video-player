@@ -25,7 +25,6 @@
             justify-content: space-between; /* Space thumbnails evenly */
             width: 100%; /* Match the width of the container */
         }
-        
         .thumbnail-img {
             width: calc(100% / 30); /* Distribute six thumbnails evenly */
             max-width: 80px; /* Optional: limit thumbnail size for better layout */
@@ -33,6 +32,9 @@
             object-fit: cover;
             object-position: center;
             cursor: pointer;
+        }
+        .hidden {
+            display: none;
         }
     </style>
 </head>
@@ -47,7 +49,7 @@
             <button type="submit" id="submitButton">Submit</button>
         </form>
 
-        <img id="big-picture" class="big-picture" src="" alt="Big Thumbnail">
+        <img id="big-picture" class="big-picture hidden" src="" alt="Big Thumbnail">
 
         <div class="thumbnails" id="thumbnails"></div>
         
@@ -78,6 +80,7 @@
                 video.onloadedmetadata = async function() {
                     const duration = video.duration;
                     await generateThumbnails(duration);
+                    bigPicture.classList.remove('hidden'); // Show the big thumbnail box
                 };
             }
 
