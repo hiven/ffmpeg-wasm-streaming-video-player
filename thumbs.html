@@ -50,6 +50,7 @@
         </form>
 
         <img id="big-picture" class="big-picture hidden" src="" alt="Big Thumbnail">
+        <p id="timestamp" class="hidden"></p>
 
         <div class="thumbnails" id="thumbnails"></div>
         
@@ -121,22 +122,27 @@
                     for (let i = 0; i < thumbnailCount; i++) {
                         const outputImageName = `thumbnail${String(i + 1).padStart(3, '0')}.jpg`;
                         const data = ffmpeg.FS('readFile', outputImageName);
+                        const timestamp = (i * interval).toFixed(2); // Calculate the timestamp
 
                         const img = document.createElement('img');
                         img.src = URL.createObjectURL(new Blob([data.buffer], { type: 'image/jpeg' }));
                         img.alt = `Thumbnail ${i + 1}`;
-                        img.classList.add('thumbnail-img'); // Add the class here
+                        img.classList.add('thumbnail-img'); 
                         img.dataset.index = i;
+                        img.dataset.timestamp = timestamp; // Store the timestamp
                         thumbnailsContainer.appendChild(img);
 
                         // Set the first thumbnail as the big picture
                         if (i === 0) {
                             bigPicture.src = img.src;
+                            document.getElementById('timestamp').innerText = `Timestamp: ${timestamp} seconds`; // Set initial timestamp
+                            document.getElementById('timestamp').classList.remove('hidden'); // Show the timestamp
                         }
 
-                        // Add hover event to change big picture
+                        // Add hover event to change big picture and timestamp
                         img.addEventListener('mouseover', () => {
                             bigPicture.src = img.src;
+                            document.getElementById('timestamp').innerText = `Timestamp: ${img.dataset.timestamp} seconds`;
                         });
                     }
 
