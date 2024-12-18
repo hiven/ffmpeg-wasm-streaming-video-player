@@ -122,6 +122,7 @@
                         const img = document.createElement('img');
                         img.src = URL.createObjectURL(new Blob([data.buffer], { type: 'image/jpeg' }));
                         img.alt = `Thumbnail ${i + 1}`;
+                        img.classList.add('thumbnail-img'); // Add the class here
                         img.dataset.index = i;
                         thumbnailsContainer.appendChild(img);
 
