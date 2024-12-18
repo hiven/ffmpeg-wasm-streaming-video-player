@@ -21,13 +21,15 @@
         }
         .thumbnails {
             display: flex;
-            overflow-x: auto;
+            gap: 10px;
             margin-top: 20px;
+            overflow: hidden;
         }
         .thumbnail img {
-            width: 100px;
+            width: calc(100% / 6); /* Ensure all thumbnails fit within the big picture's width */
             height: 100px;
             object-fit: cover;
+            object-position: center;
             cursor: pointer;
         }
     </style>
