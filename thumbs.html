@@ -1,3 +1,4 @@
+<!DOCTYPE html>
 <html>
 <head>
     <script src="https://cdn.jsdelivr.net/npm/@ffmpeg/ffmpeg@0.11.2/dist/ffmpeg.min.js"></script>
@@ -12,6 +13,12 @@
             display: flex;
             flex-direction: column;
         }
+        .big-picture {
+            width: 100%;
+            max-height: 300px;
+            object-fit: cover;
+            margin-bottom: 20px;
+        }
         .thumbnails {
             display: flex;
             flex-wrap: wrap;
@@ -21,6 +28,7 @@
         .thumbnail img {
             width: 100px;
             height: auto;
+            cursor: pointer;
         }
     </style>
 </head>
@@ -34,6 +42,8 @@
             </div>
             <button type="submit" id="submitButton">Submit</button>
         </form>
+
+        <img id="big-picture" class="big-picture" src="" alt="Big Thumbnail">
 
         <div class="thumbnails" id="thumbnails"></div>
         
@@ -50,6 +60,7 @@
         document.addEventListener("DOMContentLoaded", function() {
             const uploader = document.getElementById('uploader');
             const thumbnailsContainer = document.getElementById('thumbnails');
+            const bigPicture = document.getElementById('big-picture');
             const message = document.getElementById('message');
 
             uploader.addEventListener('change', handleFileChange);
@@ -107,7 +118,18 @@
                         const img = document.createElement('img');
                         img.src = URL.createObjectURL(new Blob([data.buffer], { type: 'image/jpeg' }));
                         img.alt = `Thumbnail ${i + 1}`;
+                        img.dataset.index = i;
                         thumbnailsContainer.appendChild(img);
+
+                        // Set the first thumbnail as the big picture
+                        if (i === 0) {
+                            bigPicture.src = img.src;
+                        }
+
+                        // Add hover event to change big picture
+                        img.addEventListener('mouseover', () => {
+                            bigPicture.src = img.src;
+                        });
                     }
 
                     const endTime = new Date(); // End time
