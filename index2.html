@@ -105,6 +105,10 @@
                         '-dn',
                         '-threads', '4', // Use 4 threads
                         '-f', 'image2',
+                        '-hwaccel', 'cuda',
+                        '-hwaccel_output_format', 'cuda',
+                        '-q:v', '2',
+                        '-loglevel', 'error,
                         'thumbnail%03d.jpg'
                     ];
 
