@@ -1,4 +1,3 @@
-<!DOCTYPE html>
 <html>
 <head>
     <script src="https://cdn.jsdelivr.net/npm/@ffmpeg/ffmpeg@0.11.2/dist/ffmpeg.min.js"></script>
@@ -12,9 +11,6 @@
         #video-controls {
             display: flex;
             flex-direction: column;
-        }
-        #output-video {
-            width: 100%; /* Set the video width to 100% of its parent container */
         }
         .thumbnails {
             display: flex;
@@ -31,9 +27,6 @@
 <body>
     <div class="container">
         <h3>Video Editor</h3>
-        <div id="video-preview">
-            <video id="output-video" loop autoplay playsinline controls class="hidden"></video>
-        </div>
         <form action="/upload" method="post" enctype="multipart/form-data" id="uploadForm">
             <div style="margin-bottom: 10px;">
                 <label for="uploader">Upload Video:</label><br>
@@ -56,17 +49,14 @@
 
         document.addEventListener("DOMContentLoaded", function() {
             const uploader = document.getElementById('uploader');
-            const videoElement = document.getElementById('output-video');
             const thumbnailsContainer = document.getElementById('thumbnails');
             const message = document.getElementById('message');
 
             uploader.addEventListener('change', handleFileChange);
 
             async function handleFileChange() {
-                videoElement.classList.remove('hidden');
                 const files = uploader.files;
                 originalFile = files[0];
-                videoElement.src = URL.createObjectURL(originalFile);
 
                 const video = document.createElement('video');
                 video.src = URL.createObjectURL(originalFile);
