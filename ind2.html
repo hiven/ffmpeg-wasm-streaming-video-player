@@ -38,6 +38,10 @@
                     <input type="range" id="startSlider" name="startSlider" min="0" max="100" value="0" step="1">
                     <span id="startSliderValue">00:00:00</span><br><br>
 
+                    <label for="durationSelect">Set Duration (seconds):</label>
+                    <select id="durationSelect"></select>
+                    <span id="endPositionText">00:00:00</span><br><br>
+
                     <button type="button" id="saveButton">Save</button>
                     <button type="button" id="cancelButton">Cancel</button>
                 </div>
@@ -93,12 +97,41 @@
         cancelButton: document.getElementById('cancelButton'),
         trimButton: document.getElementById('trimButton'),
         startSlider: document.getElementById('startSlider'),
-        startSliderValue: document.getElementById('startSliderValue')
+        startSliderValue: document.getElementById('startSliderValue'),
+        durationSelect: document.getElementById('durationSelect'),
+        endPositionText: document.getElementById('endPositionText'),
     };
 
     const setStatus = (text) => {
         elements.status.innerText = text;
     };
+
+    const populateDurationSelect = (maxDuration) => {
+        elements.durationSelect.innerHTML = ''; // Clear previous options
+        for (let i = 10; i <= 60; i += 10) { // Populate from 10 to 60 seconds
+            const option = document.createElement('option');
+            option.value = i;
+            option.textContent = `${i} seconds`;
+            elements.durationSelect.appendChild(option);
+        }
+    };
+
+    const updateEndPosition = () => {
+        const selectedDuration = parseInt(elements.durationSelect.value, 10);
+        const startPosition = elements.inputBox1.value.split(':').reduce((acc, time) => 60 * acc + parseFloat(time));
+        let endPosition = startPosition + selectedDuration;
+
+        // Ensure end position does not exceed video duration
+        if (endPosition > videoDuration) {
+            endPosition = videoDuration;
+        }
+
+        const formattedEndPosition = formatDuration(endPosition);
+        elements.endPositionText.innerText = formattedEndPosition;
+        elements.inputBox2.value = formattedEndPosition;
+    };
+
+    elements.durationSelect.addEventListener('change', updateEndPosition);
 
     const extractDuration = async file => {
         const fileData = await fetchFile(file);
@@ -114,39 +147,6 @@
         await ffmpeg.run('-i', file.name);
         const durationMatch = ffmpegOutput.match(/Duration: (\d\d:\d\d:\d\d\.\d\d)/);
         return durationMatch ? durationMatch[1].split(':').reduce((acc, time) => 60 * acc + parseFloat(time)) : null;
-    };
-
-    const generateThumbnails = async (inputFile, duration, count = 10) => {
-        const interval = duration / count;
-        elements.thumbnailContainer.innerHTML = ''; 
-
-        for (let i = 0; i < count; i++) {
-            const time = (i * interval).toFixed(2);
-            const timeFormatted = new Date(time * 1000).toISOString().substr(11, 8);
-
-            await ffmpeg.run(
-                '-skip_frame', 'nokey',
-                '-ss', timeFormatted,
-                '-i', inputFile,
-                '-vframes', '1',
-                '-q:v', '2',
-                '-an',
-                '-sn',
-                '-dn',
-                '-threads', '4',
-                '-f', 'image2',
-                `thumbnail_${i}.jpg`
-            );
-
-            const thumbnailData = ffmpeg.FS('readFile', `thumbnail_${i}.jpg`);
-            const thumbnailSrc = URL.createObjectURL(new Blob([thumbnailData.buffer], { type: 'image/jpeg' }));
-            
-            const img = document.createElement('img');
-            img.src = thumbnailSrc;
-            img.alt = `Thumbnail ${i + 1}`;
-            img.classList.add('thumbnail-img'); 
-            elements.thumbnailContainer.appendChild(img);
-        }
     };
 
     const handleFileChange = async (event) => {
@@ -177,8 +177,7 @@
 
             elements.startSlider.max = durationInSeconds;
 
-            await generateThumbnails(file.name, durationInSeconds);
-            elements.thumbnailContainer.style.display = 'flex';
+            populateDurationSelect(durationInSeconds); // Populate the duration select box
             setStatus('');
         } catch (error) {
             setStatus(`Error: ${error.message}`);
