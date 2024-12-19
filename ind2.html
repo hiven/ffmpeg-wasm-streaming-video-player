@@ -19,10 +19,10 @@
         <input type="file" id="fileInput" name="file" accept="video/*" required>
         <div id="uploadBox" style="display: none;">
             <div id="status">Loading...</div>
+            <label for="fileInput">Video Preview</label>
+            <img id="thumbnail" src="" alt="Thumbnail" />
             <div id="thumbnailContainer"></div>
-            <label for="fileInput">Video File</label>
             <div id="thumbnailWrapper">
-                <img id="thumbnail" src="" alt="Thumbnail" />
                 <div id="trimmedText" class="overlayText">Trimmed</div>
                 <div id="durationText" class="overlayText">0s</div>
             </div>
