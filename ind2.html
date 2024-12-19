@@ -112,11 +112,11 @@
     const generateThumbnails = async (inputFile, duration, count = 10) => {
         const interval = duration / count;
         elements.thumbnailContainer.innerHTML = ''; 
-
+    
         for (let i = 0; i < count; i++) {
             const time = (i * interval).toFixed(2);
             const timeFormatted = new Date(time * 1000).toISOString().substr(11, 8);
-
+    
             await ffmpeg.run(
                 '-skip_frame', 'nokey',
                 '-ss', timeFormatted,
@@ -130,19 +130,25 @@
                 '-f', 'image2',
                 `thumbnail_${i}.jpg`
             );
-
+    
             const thumbnailData = ffmpeg.FS('readFile', `thumbnail_${i}.jpg`);
             const thumbnailSrc = URL.createObjectURL(new Blob([thumbnailData.buffer], { type: 'image/jpeg' }));
-
+    
             if (i === 0) {
                 // Set the first thumbnail as the main thumbnail
                 elements.thumbnail.src = thumbnailSrc;
             }
-
+    
             const img = document.createElement('img');
             img.src = thumbnailSrc;
             img.alt = `Thumbnail ${i + 1}`;
             img.classList.add('thumbnail-img'); 
+    
+            // Add hover event listener
+            img.addEventListener('mouseover', () => {
+                elements.thumbnail.src = thumbnailSrc;
+            });
+    
             elements.thumbnailContainer.appendChild(img);
         }
     };
