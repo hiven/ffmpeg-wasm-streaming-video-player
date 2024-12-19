@@ -1,0 +1,191 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Video Duration Extractor with Thumbnail</title>
+    <link rel="stylesheet" href="css/style.css">
+    <style>
+        .thumbnail-img {
+            max-height: 100px;
+            margin: 5px;
+        }
+    </style>
+</head>
+<body>
+<div class="container">
+    <h1>Upload a Video File</h1>
+    <form id="uploadForm">
+        <label for="fileInput">Video File</label>
+        <input type="file" id="fileInput" name="file" accept="video/*" required>
+        <div id="uploadBox" style="display: none;">
+            <div id="status">Loading...</div>
+            <div id="thumbnailContainer"></div>
+            <div id="thumbnailWrapper">
+                <img id="thumbnail" src="" alt="Thumbnail" />
+                <div id="trimmedText" class="overlayText">Trimmed</div>
+                <div id="durationText" class="overlayText">0s</div>
+            </div>
+            <div id="infoContainer">
+                <p id="originalDuration">Original Duration: 00:00:00</p>
+                <p id="startTrim">Start Trim Position: 00:00:00</p>
+                <p id="endTrim">End Trim Position: 00:00:00</p>
+                <div id="inputContainer">
+                    <input type="text" id="inputBox1" value="00:00:00" pattern="\d{2}:\d{2}:\d{2}" placeholder="00:00:00">
+                    <input type="text" id="inputBox2" value="00:00:00" pattern="\d{2}:\d{2}:\d{2}" placeholder="00:00:00"><br><br>
+                    
+                    <label for="startSlider">Set Start Position:</label>
+                    <input type="range" id="startSlider" name="startSlider" min="0" max="100" value="0" step="1">
+                    <span id="startSliderValue">00:00:00</span><br><br>
+
+                    <button type="button" id="saveButton">Save</button>
+                    <button type="button" id="cancelButton">Cancel</button>
+                </div>
+                <button type="button" id="editButton">Edit Trim</button>
+                <button type="button" id="trimButton">Trim Video</button>
+            </div>
+        </div>
+        <button type="submit">Submit</button>
+    </form>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/@ffmpeg/ffmpeg@0.11.2/dist/ffmpeg.min.js"></script>
+<script>
+    const { createFFmpeg, fetchFile } = FFmpeg;
+    const ffmpeg = createFFmpeg({ log: false });
+    let ffmpegLoadPromise;
+    let fileLoaded = false;
+    let currentFileName = '';
+    let videoDuration = 0; 
+    let videoTrimmed = false; 
+    let trimSettings = { start: '00:00:00', end: '00:00:00' }; 
+
+    const loadFFMPEG = () => {
+        if (!ffmpegLoadPromise) {
+            ffmpegLoadPromise = ffmpeg.load();
+        }
+        return ffmpegLoadPromise;
+    };
+
+    document.addEventListener("DOMContentLoaded", async () => {
+        await loadFFMPEG();
+    });
+
+    const formatDuration = seconds => new Date(seconds * 1000).toISOString().substr(11, 8);
+
+    const elements = {
+        fileInput: document.getElementById('fileInput'),
+        uploadForm: document.getElementById('uploadForm'),
+        uploadBox: document.getElementById('uploadBox'),
+        status: document.getElementById('status'),
+        thumbnailContainer: document.getElementById('thumbnailContainer'),
+        thumbnail: document.getElementById('thumbnail'),
+        durationText: document.getElementById('durationText'),
+        trimmedText: document.getElementById('trimmedText'),
+        originalDuration: document.getElementById('originalDuration'),
+        startTrim: document.getElementById('startTrim'),
+        endTrim: document.getElementById('endTrim'),
+        inputContainer: document.getElementById('inputContainer'),
+        inputBox1: document.getElementById('inputBox1'),
+        inputBox2: document.getElementById('inputBox2'),
+        editButton: document.getElementById('editButton'),
+        saveButton: document.getElementById('saveButton'),
+        cancelButton: document.getElementById('cancelButton'),
+        trimButton: document.getElementById('trimButton'),
+        startSlider: document.getElementById('startSlider'),
+        startSliderValue: document.getElementById('startSliderValue')
+    };
+
+    const setStatus = (text) => {
+        elements.status.innerText = text;
+    };
+
+    const extractDuration = async file => {
+        const fileData = await fetchFile(file);
+        await ffmpeg.FS('writeFile', file.name, fileData);
+
+        let ffmpegOutput = '';
+        ffmpeg.setLogger(({ type, message }) => {
+            if (type === 'fferr' || type === 'ffout') {
+                ffmpegOutput += message + '\n';
+            }
+        });
+
+        await ffmpeg.run('-i', file.name);
+        const durationMatch = ffmpegOutput.match(/Duration: (\d\d:\d\d:\d\d\.\d\d)/);
+        return durationMatch ? durationMatch[1].split(':').reduce((acc, time) => 60 * acc + parseFloat(time)) : null;
+    };
+
+    const generateThumbnails = async (inputFile, duration, count = 10) => {
+        const interval = duration / count;
+        elements.thumbnailContainer.innerHTML = ''; 
+
+        for (let i = 0; i < count; i++) {
+            const time = (i * interval).toFixed(2);
+            const timeFormatted = new Date(time * 1000).toISOString().substr(11, 8);
+
+            await ffmpeg.run(
+                '-skip_frame', 'nokey',
+                '-ss', timeFormatted,
+                '-i', inputFile,
+                '-vframes', '1',
+                '-q:v', '2',
+                '-an',
+                '-sn',
+                '-dn',
+                '-threads', '4',
+                '-f', 'image2',
+                `thumbnail_${i}.jpg`
+            );
+
+            const thumbnailData = ffmpeg.FS('readFile', `thumbnail_${i}.jpg`);
+            const thumbnailSrc = URL.createObjectURL(new Blob([thumbnailData.buffer], { type: 'image/jpeg' }));
+            
+            const img = document.createElement('img');
+            img.src = thumbnailSrc;
+            img.alt = `Thumbnail ${i + 1}`;
+            img.classList.add('thumbnail-img'); 
+            elements.thumbnailContainer.appendChild(img);
+        }
+    };
+
+    const handleFileChange = async (event) => {
+        const file = event.target.files[0];
+        if (!file) return;
+        elements.uploadBox.style.display = 'block';
+        setStatus('Loading...');
+        if (!ffmpeg.isLoaded()) await loadFFMPEG();
+        setStatus('Processing...');
+
+        try {
+            const durationInSeconds = await extractDuration(file);
+            if (!durationInSeconds) throw new Error('Failed to get video duration');
+
+            currentFileName = file.name;
+            fileLoaded = true;
+            videoDuration = durationInSeconds; 
+
+            const formattedDuration = formatDuration(durationInSeconds);
+            elements.originalDuration.innerText = `Original Duration: ${formattedDuration}`;
+            elements.startTrim.innerText = `Start Trim Position: 00:00:00`;
+            elements.endTrim.innerText = `End Trim Position: ${formattedDuration}`;
+            elements.inputBox1.value = '00:00:00';
+            elements.inputBox2.value = formattedDuration;
+            elements.durationText.innerText = formattedDuration;
+            elements.durationText.style.display = 'block';
+            elements.trimmedText.style.display = durationInSeconds > 60 ? 'block' : 'none';
+
+            elements.startSlider.max = durationInSeconds;
+
+            await generateThumbnails(file.name, durationInSeconds);
+            elements.thumbnailContainer.style.display = 'flex';
+            setStatus('');
+        } catch (error) {
+            setStatus(`Error: ${error.message}`);
+        }
+    };
+
+    elements.fileInput.addEventListener('change', handleFileChange);
+</script>
+</body>
+</html>
