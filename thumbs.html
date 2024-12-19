@@ -104,17 +104,17 @@
                     const startTime = new Date(); // Start time
 
                     const args = [
-                        '-skip_frame', interval >= 2 ? 'nokey' : 'default',
-                        '-i', originalFile.name,
-                        '-vf', `fps=1/${interval},scale=320:180:flags=bilinear`,
-                        '-vsync', '2',
-                        '-flags2', 'fast',
+                        '-skip_frame', 'nokey',
+                        '-ss', timeFormatted,
+                        '-i', inputFile,
+                        '-vframes', '1',
+                        '-q:v', '2',
                         '-an',
                         '-sn',
                         '-dn',
-                        '-threads', '4', // Use 4 threads
+                        '-threads', '4',
                         '-f', 'image2',
-                        'thumbnail%03d.jpg'
+                        `thumbnail_${i}.jpg`
                     ];
 
                     await ffmpeg.run(...args);
