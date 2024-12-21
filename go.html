@@ -1,0 +1,123 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Video Thumbnail Generator</title>
+    <link rel="stylesheet" href="css/style.css">
+    <style>
+        .thumbnail-img {
+            max-width: 100%;
+        }
+    </style>
+</head>
+<body>
+<div class="container">
+    <h1>Upload a Video File</h1>
+    <form id="uploadForm">
+        <label for="fileInput">Video File</label>
+        <input type="file" id="fileInput" name="file" accept="video/*" required>
+        <div id="uploadBox" style="display: none;">
+            <div id="status">Loading...</div>
+            <div id="thumbnailContainer"></div>
+        </div>
+        <button type="submit">Submit</button>
+    </form>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/@ffmpeg/ffmpeg@0.11.2/dist/ffmpeg.min.js"></script>
+<script>
+    const { createFFmpeg, fetchFile } = FFmpeg;
+    const ffmpeg = createFFmpeg({ log: true });
+    let ffmpegLoadPromise;
+
+    const loadFFMPEG = () => {
+        if (!ffmpegLoadPromise) {
+            ffmpegLoadPromise = ffmpeg.load();
+        }
+        return ffmpegLoadPromise;
+    };
+
+    const setStatus = (text) => {
+        const statusElement = document.getElementById('status');
+        statusElement.innerText = text;
+    };
+
+    const extractDuration = async (file) => {
+        const fileData = await fetchFile(file);
+        await ffmpeg.FS('writeFile', file.name, fileData);
+
+        let ffmpegOutput = '';
+        ffmpeg.setLogger(({ type, message }) => {
+            if (type === 'fferr' || type === 'ffout') {
+                ffmpegOutput += message + '\n';
+            }
+        });
+
+        await ffmpeg.run('-i', file.name);
+        const durationMatch = ffmpegOutput.match(/Duration: (\d\d:\d\d:\d\d\.\d\d)/);
+        return durationMatch ? durationMatch[1].split(':').reduce((acc, time) => 60 * acc + parseFloat(time)) : null;
+    };
+
+    const generateThumbnails = async (inputFile, duration, count = 10) => {
+        const interval = duration / count;
+        const selectExpr = Array.from({ length: count }, (_, i) => i * interval)
+            .map(time => `eq(n\\,${Math.floor(time * 30)})`) // Assuming 30 FPS
+            .join('+');
+
+        const filterComplex = `select='${selectExpr}',scale=120:-1,tile=${count}x1`; // Adjust scale and grid dimensions as needed
+
+        await ffmpeg.run(
+            '-i', inputFile,
+            '-vf', filterComplex,
+            '-vsync', 'vfr',
+            '-frames:v', '1',
+            'thumbnails.jpg'
+        );
+
+        const thumbnailData = ffmpeg.FS('readFile', 'thumbnails.jpg');
+        const thumbnailSrc = URL.createObjectURL(new Blob([thumbnailData.buffer], { type: 'image/jpeg' }));
+
+        // Display the thumbnails grid
+        const thumbnailContainer = document.getElementById('thumbnailContainer');
+        thumbnailContainer.innerHTML = '';
+        const img = document.createElement('img');
+        img.src = thumbnailSrc;
+        img.alt = 'Generated Thumbnails';
+        img.classList.add('thumbnail-img');
+        thumbnailContainer.appendChild(img);
+    };
+
+    const handleFileChange = async (event) => {
+        const file = event.target.files[0];
+        if (!file) return;
+
+        const uploadBox = document.getElementById('uploadBox');
+        uploadBox.style.display = 'block';
+        setStatus('Loading...');
+        if (!ffmpeg.isLoaded()) await loadFFMPEG();
+        setStatus('Processing...');
+
+        try {
+            const durationInSeconds = await extractDuration(file);
+            if (!durationInSeconds) throw new Error('Failed to get video duration');
+
+            const formattedDuration = new Date(durationInSeconds * 1000).toISOString().substr(11, 8);
+            setStatus(`Video Duration: ${formattedDuration}`);
+
+            await generateThumbnails(file.name, durationInSeconds);
+            setStatus('');
+        } catch (error) {
+            setStatus(`Error: ${error.message}`);
+        }
+    };
+
+    document.addEventListener("DOMContentLoaded", async () => {
+        await loadFFMPEG();
+
+        const fileInput = document.getElementById('fileInput');
+        fileInput.addEventListener('change', handleFileChange);
+    });
+</script>
+</body>
+</html>
