@@ -1,0 +1,164 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Video Metadata Extractor with Thumbnail</title>
+    <style>
+        .thumbnail-img {
+            max-height: 50px;
+        }
+    </style>
+</head>
+<body>
+<div class="container">
+    <h1>Upload a Video File</h1>
+    <form id="uploadForm">
+        <label for="fileInput">Video File</label>
+        <input type="file" id="fileInput" name="file" accept="video/*" required>
+        <div id="uploadBox" style="display: none;">
+            <div id="status">Loading...</div>
+            <label>Video Preview</label>
+            <img id="thumbnail" src="" alt="Thumbnail" />
+            <div id="thumbnailContainer"></div>
+            <div id="infoContainer">
+                <p id="resolutionInfo">Resolution: N/A</p>
+                <p id="durationInfo">Duration: N/A</p>
+                <p id="otherInfo">Other Info: N/A</p>
+            </div>
+        </div>
+        <button type="submit">Submit</button>
+    </form>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/@ffmpeg/ffmpeg@0.11.2/dist/ffmpeg.min.js"></script>
+<script>
+    const { createFFmpeg, fetchFile } = FFmpeg;
+    const ffmpeg = createFFmpeg({ log: false });
+
+    const loadFFMPEG = () => {
+        if (!ffmpeg.isLoaded()) {
+            return ffmpeg.load();
+        }
+        return Promise.resolve();
+    };
+
+    const elements = {
+        fileInput: document.getElementById('fileInput'),
+        uploadBox: document.getElementById('uploadBox'),
+        status: document.getElementById('status'),
+        thumbnail: document.getElementById('thumbnail'),
+        thumbnailContainer: document.getElementById('thumbnailContainer'),
+        resolutionInfo: document.getElementById('resolutionInfo'),
+        durationInfo: document.getElementById('durationInfo'),
+        otherInfo: document.getElementById('otherInfo')
+    };
+
+    const setStatus = (text) => {
+        elements.status.innerText = text;
+    };
+
+    // Extract metadata (resolution, duration, and other key information)
+    const extractMetadata = async (file) => {
+        const fileData = await fetchFile(file);
+        await ffmpeg.FS('writeFile', file.name, fileData);
+
+        let ffmpegOutput = '';
+        ffmpeg.setLogger(({ type, message }) => {
+            if (type === 'fferr' || type === 'ffout') {
+                ffmpegOutput += message + '\n';
+            }
+        });
+
+        await ffmpeg.run('-i', file.name);
+
+        const resolutionMatch = ffmpegOutput.match(/, (\d{2,5})x(\d{2,5})/);
+        const durationMatch = ffmpegOutput.match(/Duration: (\d\d:\d\d:\d\d\.\d\d)/);
+
+        const metadata = {
+            resolution: resolutionMatch ? `${resolutionMatch[1]}x${resolutionMatch[2]}` : 'Unknown',
+            duration: durationMatch ? durationMatch[1] : 'Unknown',
+            rawOutput: ffmpegOutput
+        };
+
+        return metadata;
+    };
+
+    // Generate thumbnails
+    const generateThumbnails = async (inputFile, durationSeconds, count = 10) => {
+        const interval = durationSeconds / count;
+        elements.thumbnailContainer.innerHTML = ''; 
+
+        for (let i = 0; i < count; i++) {
+            const time = (i * interval).toFixed(2);
+            const timeFormatted = new Date(time * 1000).toISOString().substr(11, 8);
+
+            await ffmpeg.run(
+                '-ss', timeFormatted,
+                '-i', inputFile,
+                '-vframes', '1',
+                `thumbnail_${i}.jpg`
+            );
+
+            const thumbnailData = ffmpeg.FS('readFile', `thumbnail_${i}.jpg`);
+            const thumbnailSrc = URL.createObjectURL(new Blob([thumbnailData.buffer], { type: 'image/jpeg' }));
+
+            if (i === 0) {
+                elements.thumbnail.src = thumbnailSrc; // Set first thumbnail as main thumbnail
+            }
+
+            const img = document.createElement('img');
+            img.src = thumbnailSrc;
+            img.alt = `Thumbnail ${i + 1}`;
+            img.classList.add('thumbnail-img');
+            img.addEventListener('mouseover', () => {
+                elements.thumbnail.src = thumbnailSrc;
+            });
+            elements.thumbnailContainer.appendChild(img);
+        }
+    };
+
+    // Handle file change
+    const handleFileChange = async (event) => {
+        const file = event.target.files[0];
+        if (!file) return;
+
+        elements.uploadBox.style.display = 'block';
+        setStatus('Loading...');
+        await loadFFMPEG();
+        setStatus('Processing...');
+
+        try {
+            const metadata = await extractMetadata(file);
+
+            // Check resolution
+            const [width, height] = metadata.resolution.split('x').map(Number);
+            const minWidth = 640;
+            const minHeight = 480;
+            if (width < minWidth || height < minHeight) {
+                setStatus(`Error: Video resolution (${metadata.resolution}) is too small. Minimum: 640x480.`);
+                elements.uploadBox.style.display = 'none';
+                return;
+            }
+
+            // Parse duration into seconds
+            const durationParts = metadata.duration.split(':').map(Number);
+            const durationSeconds = durationParts[0] * 3600 + durationParts[1] * 60 + durationParts[2];
+
+            // Display metadata
+            elements.resolutionInfo.innerText = `Resolution: ${metadata.resolution}`;
+            elements.durationInfo.innerText = `Duration: ${metadata.duration}`;
+            elements.otherInfo.innerText = `Raw Output: Metadata extracted successfully`;
+
+            // Generate thumbnails
+            await generateThumbnails(file.name, durationSeconds);
+            setStatus('');
+        } catch (error) {
+            setStatus(`Error: ${error.message}`);
+        }
+    };
+
+    elements.fileInput.addEventListener('change', handleFileChange);
+</script>
+</body>
+</html>
