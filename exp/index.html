@@ -4,12 +4,69 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>FFmpeg WASM Example</title>
+  <style>
+    #log {
+      background: #f9f9f9;
+      padding: 10px;
+      margin-top: 10px;
+      border: 1px solid #ddd;
+      white-space: pre-line;
+    }
+  </style>
 </head>
 <body>
   <h1>FFmpeg WASM Example</h1>
   <input type="file" id="upload" accept="video/*" />
   <button id="processButton">Process Video</button>
-  <div id="log" style="background: #f9f9f9; padding: 10px; margin-top: 10px; border: 1px solid #ddd;"></div>
-  <script src="main.js"></script>
+  <div id="log"></div>
+
+  <script type="module">
+    import { createFFmpeg, fetchFile } from 'https://cdn.jsdelivr.net/npm/@ffmpeg/ffmpeg@0.12.10/dist/ffmpeg.min.js';
+
+    const logToHtml = (message) => {
+      const logDiv = document.getElementById('log');
+      if (logDiv) {
+        logDiv.textContent += `${message}\n`;
+      }
+      console.log(message); // Fallback to console logging
+    };
+
+    const ffmpeg = createFFmpeg({ log: true });
+
+    document.getElementById('processButton').addEventListener('click', async () => {
+      try {
+        logToHtml('Process started...');
+        const fileInput = document.getElementById('upload');
+        if (fileInput.files.length === 0) {
+          alert('Please select a video file');
+          return;
+        }
+
+        const file = fileInput.files[0];
+        logToHtml('Loading FFmpeg...');
+        await ffmpeg.load();
+
+        logToHtml('Writing file to FFmpeg...');
+        ffmpeg.FS('writeFile', file.name, await fetchFile(file));
+        logToHtml('Running FFmpeg command...');
+        await ffmpeg.run('-i', file.name, 'output.mp4');
+
+        logToHtml('Reading output file...');
+        const outputFile = ffmpeg.FS('readFile', 'output.mp4');
+
+        const videoBlob = new Blob([outputFile.buffer], { type: 'video/mp4' });
+        const videoUrl = URL.createObjectURL(videoBlob);
+
+        const videoElement = document.createElement('video');
+        videoElement.src = videoUrl;
+        videoElement.controls = true;
+        document.body.appendChild(videoElement);
+
+        logToHtml('Processing completed. Video appended to the page.');
+      } catch (error) {
+        logToHtml(`Error: ${error.message}`);
+      }
+    });
+  </script>
 </body>
 </html>
