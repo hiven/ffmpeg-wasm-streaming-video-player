@@ -1,17 +1,15 @@
 {
-  "name": "remix-ffmpeg-wasm",
+  "name": "ffmpeg-wasm-netlify",
   "private": true,
-  "type": "module",
   "scripts": {
-    "build": "remix build",
-    "dev": "remix dev",
-    "start": "netlify serve",
-    "postinstall": "patch-package"
+    "dev": "netlify dev",
+    "start": "netlify serve"
   },
   "dependencies": {
     "@ffmpeg/ffmpeg": "^0.12.10"
   },
   "devDependencies": {
+    "netlify-cli": "^3.38.0"
   },
   "engines": {
     "node": ">=18"
