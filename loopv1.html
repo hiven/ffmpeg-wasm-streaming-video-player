@@ -1,0 +1,152 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <script src="https://cdn.jsdelivr.net/npm/@ffmpeg/ffmpeg@0.11.2/dist/ffmpeg.min.js"></script>
+    <link rel="stylesheet" href="css/style.css">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+</head>
+<body>
+    <div class="container">
+        <h3>Video Editor</h3>
+        <p id="message"></p>
+        <div id="console-log"></div>
+        <form action="/upload" method="post" enctype="multipart/form-data" id="uploadForm">
+            <div style="margin-bottom: 10px;">
+                <label for="uploader">Upload Video:</label><br>
+                <input type="file" name="videoFile" id="uploader">
+            </div>
+            <button type="submit" id="submitButton">Submit</button>
+        </form>
+
+        <!-- Add an image element to show the preview at the top -->
+        <img id="preview-image" src="">
+
+        <!-- Thumbnails container -->
+        <div class="thumbnails" id="thumbnails"></div>
+    </div>
+
+    <script>
+        const { createFFmpeg, fetchFile } = FFmpeg;
+        const ffmpeg = createFFmpeg({ log: true });
+        let originalFile = null;
+        let ffmpegOutput = '';
+
+        document.addEventListener("DOMContentLoaded", function() {
+            const uploader = document.getElementById('uploader');
+            const thumbnailsContainer = document.getElementById('thumbnails');
+            const previewImage = document.getElementById('preview-image');
+            const message = document.getElementById('message');
+
+            uploader.addEventListener('change', handleFileChange);
+
+            async function handleFileChange() {
+                const files = uploader.files;
+                originalFile = files[0];
+
+                try {
+                    if (!ffmpeg.isLoaded()) {
+                        message.innerHTML = 'Loading FFmpeg...';
+                        await ffmpeg.load();
+                    }
+                    message.innerHTML = 'Getting video duration...';
+
+                    await ffmpeg.FS('writeFile', originalFile.name, await fetchFile(originalFile));
+
+                    // Reset ffmpegOutput
+                    ffmpegOutput = '';
+
+                    // Set up FFmpeg logging
+                    ffmpeg.setLogger(({ type, message }) => {
+                        if (type === 'fferr' || type === 'ffout') {
+                            ffmpegOutput += message + '\n';
+                        }
+                    });
+
+                    const args = [
+                        '-i', originalFile.name
+                    ];
+
+                    await ffmpeg.run(...args);
+
+                    // Parse the duration from the FFmpeg output
+                    const durationRegex = /Duration: (\d\d:\d\d:\d\d\.\d\d)/;
+                    const durationMatch = ffmpegOutput.match(durationRegex);
+
+                    if (durationMatch && durationMatch.length > 1) {
+                        const durationString = durationMatch[1];
+                        const [hours, minutes, seconds] = durationString.split(':');
+                        const durationInSeconds = Math.floor(parseInt(hours) * 3600 + parseInt(minutes) * 60 + parseFloat(seconds));
+                        await generateThumbnails(durationInSeconds);
+                    } else {
+                        throw new Error('Failed to get video duration');
+                    }
+                } catch (error) {
+                    message.innerHTML = `Error: ${error.message}`;
+                    console.error(error);
+                }
+            }
+
+            async function generateThumbnails(duration) {
+                try {
+                    message.innerHTML = 'Generating thumbnails...';
+
+                    const thumbnailCount = 20;
+                    const interval = duration / thumbnailCount;
+                    thumbnailsContainer.innerHTML = '';
+
+                    const startTime = new Date(); // Start time
+
+                    const args = [
+                        '-skip_frame', interval >= 2 ? 'nokey' : 'default',
+                        '-i', originalFile.name,
+                        '-vf', `fps=1/${interval}`,
+                        '-vsync', '2',
+                        '-flags2', 'fast',
+                        '-f', 'image2',
+                        'thumbnail%03d.jpg'
+                    ];
+
+                    await ffmpeg.run(...args);
+
+                    for (let i = 0; i < thumbnailCount; i++) {
+                        const outputImageName = `thumbnail${String(i + 1).padStart(3, '0')}.jpg`;
+                        const data = ffmpeg.FS('readFile', outputImageName);
+
+                        const img = document.createElement('img');
+                        img.src = URL.createObjectURL(new Blob([data.buffer], { type: 'image/jpeg' }));
+                        img.alt = `Thumbnail ${i + 1}`;
+                        thumbnailsContainer.appendChild(img);
+
+                        // Add mouseover event listener to change the preview image
+                        img.addEventListener('mouseover', () => {
+                            previewImage.src = img.src;
+                        });
+
+                        // Set the first thumbnail as the preview image initially
+                        if (i === 0) {
+                            previewImage.src = img.src;
+                        }
+                    }
+
+                    const endTime = new Date(); // End time
+                    const timeTaken = (endTime - startTime) / 1000; // Calculate time taken in seconds
+
+                    message.innerHTML = 'Thumbnails generated successfully!';
+                } catch (error) {
+                    message.innerHTML = `Error: ${error.message}`;
+                    console.error(error);
+                } finally {
+                    // Clean up and unload FFmpeg to release memory
+                    ffmpeg.exit();
+                }
+            }
+
+            // Function to print logs to HTML
+            function logToHTML(message) {
+                const logDiv = document.getElementById('console-log');
+                logDiv.innerHTML += `<p>${message}</p>`;
+            }
+        });
+    </script>
+</body>
+</html>
