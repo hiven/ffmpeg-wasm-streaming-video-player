@@ -1,17 +1,11 @@
 {
-  "name": "ffmpeg-wasm-netlify",
+  "name": "ffmpeg-wasm-project",
   "private": true,
   "scripts": {
-    "dev": "netlify dev",
-    "start": "netlify serve"
+    "start": "node main.js"
   },
   "dependencies": {
-    "@ffmpeg/ffmpeg": "^0.12.10"
-  },
-  "devDependencies": {
-    "netlify-cli": "^3.38.0"
-  },
-  "engines": {
-    "node": ">=18"
+    "@ffmpeg/ffmpeg": "^0.12.10",
+    "@ffmpeg/util": "^0.0.3"
   }
 }
