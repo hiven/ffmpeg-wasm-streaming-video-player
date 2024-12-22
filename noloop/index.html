@@ -136,6 +136,7 @@
                     message.innerHTML = `Error: ${error.message}`;
                     console.error(error);
                 } finally {
+                    ffmpeg.FS('unlink', originalFile.name);
                     // Clean up and unload FFmpeg to release memory
                     ffmpeg.exit();
                 }
