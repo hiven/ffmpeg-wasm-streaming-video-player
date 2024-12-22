@@ -1,0 +1,129 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Video Thumbnail Generator</title>
+    <style>
+        .thumbnail-img {
+            max-width: 100%;
+            display: block;
+            margin: 0 auto;
+        }
+
+        #status {
+            font-size: 1.2rem;
+            margin-top: 10px;
+        }
+
+        #thumbnailContainer {
+            margin-top: 20px;
+            text-align: center;
+        }
+    </style>
+</head>
+<body>
+<div class="container">
+    <h1>Upload a Video File</h1>
+    <form id="uploadForm">
+        <label for="fileInput">Video File</label>
+        <input type="file" id="fileInput" name="file" accept="video/*" required>
+        <div id="uploadBox" style="display: none;">
+            <div id="status" aria-live="polite">Loading...</div>
+            <div id="thumbnailContainer"></div>
+        </div>
+        <button type="submit">Submit</button>
+    </form>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/@ffmpeg/ffmpeg@0.11.2/dist/ffmpeg.min.js"></script>
+<script>
+    const { createFFmpeg, fetchFile } = FFmpeg;
+    const ffmpeg = createFFmpeg({ log: true });
+    let ffmpegLoadPromise = null;
+
+    // Lazy load FFmpeg
+    const loadFFMPEG = () => ffmpegLoadPromise || (ffmpegLoadPromise = ffmpeg.load());
+
+    // Update status
+    const setStatus = (text) => {
+        const statusElement = document.getElementById('status');
+        statusElement.innerText = text;
+    };
+
+    // Extract duration
+    const extractDuration = async (file) => {
+        const fileData = await fetchFile(file);
+        ffmpeg.FS('writeFile', file.name, fileData);
+
+        try {
+            const { stdout } = await ffmpeg.run('-i', file.name);
+            const match = stdout.match(/Duration: (\d{2}:\d{2}:\d{2}\.\d{2})/);
+            return match ? match[1].split(':').reduce((acc, time) => acc * 60 + parseFloat(time)) : null;
+        } catch (error) {
+            console.error('Error extracting duration:', error);
+            throw new Error('Could not determine video duration');
+        }
+    };
+
+    // Generate thumbnails
+    const generateThumbnails = async (inputFile, duration, count = 10) => {
+        const interval = Math.floor(duration / count); // Approx interval in seconds
+        const outputFile = 'thumbnails.jpg';
+
+        await ffmpeg.run(
+            '-i', inputFile,
+            '-vf', `fps=1/${interval},scale=120:-1,tile=${count}x1`,
+            '-frames:v', '1',
+            outputFile
+        );
+
+        const thumbnailData = ffmpeg.FS('readFile', outputFile);
+        const thumbnailSrc = URL.createObjectURL(
+            new Blob([thumbnailData.buffer], { type: 'image/jpeg' })
+        );
+
+        // Display the generated thumbnail grid
+        const container = document.getElementById('thumbnailContainer');
+        container.innerHTML = '';
+        const img = document.createElement('img');
+        img.src = thumbnailSrc;
+        img.alt = 'Generated Thumbnails';
+        img.classList.add('thumbnail-img');
+        container.appendChild(img);
+    };
+
+    // File input handler
+    const handleFileChange = async (event) => {
+        const file = event.target.files[0];
+        if (!file) return;
+
+        const uploadBox = document.getElementById('uploadBox');
+        uploadBox.style.display = 'block';
+        setStatus('Loading FFmpeg...');
+        if (!ffmpeg.isLoaded()) await loadFFMPEG();
+
+        setStatus('Processing...');
+        try {
+            const duration = await extractDuration(file);
+            if (!duration) throw new Error('Invalid video duration');
+
+            const formattedDuration = new Date(duration * 1000).toISOString().substr(11, 8);
+            setStatus(`Video Duration: ${formattedDuration}`);
+
+            await generateThumbnails(file.name, duration);
+            setStatus('Thumbnails generated successfully!');
+        } catch (error) {
+            setStatus(`Error: ${error.message}`);
+            console.error(error);
+        }
+    };
+
+    // Add event listeners
+    document.addEventListener('DOMContentLoaded', () => {
+        const fileInput = document.getElementById('fileInput');
+        fileInput.addEventListener('change', handleFileChange);
+    });
+</script>
+</body>
+</html>
