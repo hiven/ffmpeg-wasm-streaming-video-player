@@ -24,114 +24,38 @@
     </div>
 
     <script>
-        (async () => {
-            const { createFFmpeg, fetchFile } = FFmpeg;
-            const ffmpeg = await createFFmpeg({ log: true });
-            let originalFile = null;
-            let ffmpegOutput = '';
+      const { fetchFile } = FFmpegUtil;
+      const { FFmpeg } = FFmpegWASM;
+      let ffmpeg = null;
 
-            document.addEventListener("DOMContentLoaded", function() {
-                const uploader = document.getElementById('uploader');
-                const thumbnailsContainer = document.getElementById('thumbnails');
-                const previewImage = document.getElementById('preview-image');
-                const message = document.getElementById('message');
+      const transcode = async ({ target: { files } }) => {
+        const message = document.getElementById('message');
+        if (ffmpeg === null) {
+          ffmpeg = new FFmpeg();
+          ffmpeg.on("log", ({ message }) => {
+            console.log(message);
+          })
+          ffmpeg.on("progress", ({ progress, time }) => {
+            message.innerHTML = `${progress * 100} %, time: ${time / 1000000} s`;
+          });
+          await ffmpeg.load({
+            coreURL: "/assets/core/package/dist/umd/ffmpeg-core.js",
+          });
+        }
+        const { name } = files[0];
+        await ffmpeg.writeFile(name, await fetchFile(files[0]));
+        message.innerHTML = 'Start transcoding';
+        console.time('exec');
+        await ffmpeg.exec(['-i', name,  'output.mp4']);
+        console.timeEnd('exec');
+        message.innerHTML = 'Complete transcoding';
+        const data = await ffmpeg.readFile('output.mp4');
 
-                uploader.addEventListener('change', handleFileChange);
-
-                async function handleFileChange() {
-                    const files = uploader.files;
-                    originalFile = files[0];
-
-                    try {
-                        if (!ffmpeg.isLoaded()) {
-                            message.innerHTML = 'Loading FFmpeg...';
-                            await ffmpeg.load();
-                        }
-                        message.innerHTML = 'Getting video duration...';
-
-                        await ffmpeg.FS('writeFile', originalFile.name, await fetchFile(originalFile));
-
-                        ffmpegOutput = '';
-                        ffmpeg.setLogger(({ type, message }) => {
-                            if (type === 'fferr' || type === 'ffout') {
-                                ffmpegOutput += message + '\n';
-                            }
-                        });
-
-                        const args = ['-i', originalFile.name];
-                        await ffmpeg.run(...args);
-
-                        const durationRegex = /Duration: (\d\d:\d\d:\d\d\.\d\d)/;
-                        const durationMatch = ffmpegOutput.match(durationRegex);
-
-                        if (durationMatch && durationMatch.length > 1) {
-                            const durationString = durationMatch[1];
-                            const [hours, minutes, seconds] = durationString.split(':');
-                            const durationInSeconds = Math.floor(parseInt(hours) * 3600 + parseInt(minutes) * 60 + parseFloat(seconds));
-                            await generateThumbnails(durationInSeconds);
-                        } else {
-                            throw new Error('Failed to get video duration');
-                        }
-                    } catch (error) {
-                        message.innerHTML = `Error: ${error.message}`;
-                        console.error(error);
-                    }
-                }
-
-                async function generateThumbnails(duration) {
-                    try {
-                        message.innerHTML = 'Generating thumbnails...';
-
-                        const thumbnailCount = 20;
-                        const interval = duration / thumbnailCount;
-                        thumbnailsContainer.innerHTML = '';
-
-                        const startTime = new Date();
-
-                        const args = [
-                            '-skip_frame', interval >= 2 ? 'nokey' : 'default',
-                            '-i', originalFile.name,
-                            '-vf', `fps=1/${interval}`,
-                            '-vsync', '2',
-                            '-flags2', 'fast',
-                            '-f', 'image2',
-                            'thumbnail%03d.jpg'
-                        ];
-
-                        await ffmpeg.run(...args);
-
-                        for (let i = 0; i < thumbnailCount; i++) {
-                            const outputImageName = `thumbnail${String(i + 1).padStart(3, '0')}.jpg`;
-                            const data = ffmpeg.FS('readFile', outputImageName);
-
-                            const img = document.createElement('img');
-                            img.src = URL.createObjectURL(new Blob([data.buffer], { type: 'image/jpeg' }));
-                            img.alt = `Thumbnail ${i + 1}`;
-                            thumbnailsContainer.appendChild(img);
-
-                            img.addEventListener('mouseover', () => {
-                                previewImage.src = img.src;
-                            });
-
-                            if (i === 0) {
-                                previewImage.src = img.src;
-                            }
-                        }
-
-                        const endTime = new Date();
-                        const timeTaken = (endTime - startTime) / 1000;
-
-                        message.innerHTML = 'Thumbnails generated successfully!';
-                    } catch (error) {
-                        message.innerHTML = `Error: ${error.message}`;
-                        console.error(error);
-                    } finally {
-                        ffmpeg.FS('unlink', originalFile.name);
-                        ffmpeg.exit();
-                    }
-                }
-            });
-        })();
+        const video = document.getElementById('output-video');
+        video.src = URL.createObjectURL(new Blob([data.buffer], { type: 'video/mp4' }));
+      }
+      const elm = document.getElementById('uploader');
+      elm.addEventListener('change', transcode);
     </script>
 </body>
 </html>
