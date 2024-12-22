@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>FFmpeg Test</title>
+    <script src="https://cdn.jsdelivr.net/npm/@ffmpeg/ffmpeg@0.12.10/dist/umd/ffmpeg.min.js"></script>
+</head>
+<body>
+    <h1>FFmpeg Script Test</h1>
+    <p>This is a simple HTML page to test FFmpeg integration.</p>
+
+    <div id="status"></div>
+
+    <script>
+        // Check if FFmpeg is loaded correctly
+        const statusElement = document.getElementById('status');
+        if (typeof ffmpeg !== 'undefined') {
+            statusElement.textContent = 'FFmpeg loaded successfully!';
+        } else {
+            statusElement.textContent = 'FFmpeg failed to load.';
+        }
+    </script>
+</body>
+</html>
