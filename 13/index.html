@@ -11,6 +11,9 @@
         document.addEventListener("DOMContentLoaded", async () => {
             const message = document.getElementById('message');
             try {
+                const { FFmpeg } = FFmpegWASM;
+                let ffmpeg = null;
+                
                 const ffmpeg = new FFmpeg();
                 message.innerText = 'Loading FFmpeg...';
                 await ffmpeg.load();
