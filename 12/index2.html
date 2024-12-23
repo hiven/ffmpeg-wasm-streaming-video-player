@@ -11,24 +11,38 @@
     <button id="load-ffmpeg">Load FFmpeg</button>
 
     <script>
-        // Create FFmpeg instance
-        const { FFmpeg } = FFmpeg;
-        const ffmpeg = FFmpeg.new FFmpeg();
+      const { fetchFile } = FFmpegUtil;
+      const { FFmpeg } = FFmpegWASM;
+      let ffmpeg = null;
 
-        // Button click to load FFmpeg
-        const button = document.getElementById('load-ffmpeg');
+      const transcode = async ({ target: { files } }) => {
         const message = document.getElementById('message');
+        if (ffmpeg === null) {
+          ffmpeg = new FFmpeg();
+          ffmpeg.on("log", ({ message }) => {
+            console.log(message);
+          })
+          ffmpeg.on("progress", ({ progress, time }) => {
+            message.innerHTML = `${progress * 100} %, time: ${time / 1000000} s`;
+          });
+          await ffmpeg.load({
+            coreURL: "/assets/core/package/dist/umd/ffmpeg-core.js",
+          });
+        }
+        const { name } = files[0];
+        await ffmpeg.writeFile(name, await fetchFile(files[0]));
+        message.innerHTML = 'Start transcoding';
+        console.time('exec');
+        await ffmpeg.exec(['-i', name,  'output.mp4']);
+        console.timeEnd('exec');
+        message.innerHTML = 'Complete transcoding';
+        const data = await ffmpeg.readFile('output.mp4');
 
-        button.addEventListener('click', async () => {
-            message.textContent = 'Loading FFmpeg...';
-
-            try {
-                await ffmpeg.load();
-                message.textContent = 'FFmpeg loaded successfully!';
-            } catch (error) {
-                message.textContent = 'Failed to load FFmpeg.';
-            }
-        });
+        const video = document.getElementById('output-video');
+        video.src = URL.createObjectURL(new Blob([data.buffer], { type: 'video/mp4' }));
+      }
+      const elm = document.getElementById('uploader');
+      elm.addEventListener('change', transcode);
     </script>
 </body>
 </html>
