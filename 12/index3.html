@@ -12,7 +12,9 @@
 
     <script>
         // Create FFmpeg instance
-        const ffmpeg = new FFmpeg();
+        const { FFmpeg } = FFmpegWASM;
+        let ffmpeg = null;
+        ffmpeg = new FFmpeg();
 
         // Button click to load FFmpeg
         const button = document.getElementById('load-ffmpeg');
