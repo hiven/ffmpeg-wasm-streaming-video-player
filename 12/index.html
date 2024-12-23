@@ -9,7 +9,7 @@
     <div class="container">
         <h3>Video Editor</h3>
         <p id="message"></p>
-        <div id="console-log"></div>
+        <div id="console-log" style="background: #f5f5f5; padding: 10px; border: 1px solid #ddd; max-height: 200px; overflow-y: auto;"></div>
         <form action="/upload" method="post" enctype="multipart/form-data" id="uploadForm">
             <div style="margin-bottom: 10px;">
                 <label for="uploader">Upload Video:</label><br>
@@ -28,32 +28,51 @@
       const { FFmpeg } = FFmpegWASM;
       let ffmpeg = null;
 
+      // Override console.log to also log to the #console-log div
+      const originalConsoleLog = console.log;
+      console.log = function(message) {
+          originalConsoleLog(message); // Keep the original log behaviour
+          const consoleDiv = document.getElementById('console-log');
+          const logEntry = document.createElement('div');
+          logEntry.textContent = message;
+          consoleDiv.appendChild(logEntry);
+          consoleDiv.scrollTop = consoleDiv.scrollHeight; // Scroll to the bottom
+      };
+
       const transcode = async ({ target: { files } }) => {
         const message = document.getElementById('message');
         if (ffmpeg === null) {
           ffmpeg = new FFmpeg();
           ffmpeg.on("log", ({ message }) => {
-            console.log(message);
-          })
+            console.log(`FFmpeg Log: ${message}`);
+          });
           ffmpeg.on("progress", ({ progress, time }) => {
-            message.innerHTML = `${progress * 100} %, time: ${time / 1000000} s`;
+            const progressMessage = `Progress: ${(progress * 100).toFixed(2)}%, Time: ${(time / 1000000).toFixed(2)}s`;
+            message.innerHTML = progressMessage;
+            console.log(progressMessage);
           });
           await ffmpeg.load({
             coreURL: "/assets/core/package/dist/umd/ffmpeg-core.js",
           });
         }
         const { name } = files[0];
+        console.log(`Uploading file: ${name}`);
         await ffmpeg.writeFile(name, await fetchFile(files[0]));
         message.innerHTML = 'Start transcoding';
+        console.log('Start transcoding');
         console.time('exec');
-        await ffmpeg.exec(['-i', name,  'output.mp4']);
+        await ffmpeg.exec(['-i', name, 'output.mp4']);
         console.timeEnd('exec');
         message.innerHTML = 'Complete transcoding';
+        console.log('Complete transcoding');
         const data = await ffmpeg.readFile('output.mp4');
 
+        console.log('Reading output file: output.mp4');
         const video = document.getElementById('output-video');
         video.src = URL.createObjectURL(new Blob([data.buffer], { type: 'video/mp4' }));
-      }
+        console.log('Video transcoding complete. Preview available.');
+      };
+
       const elm = document.getElementById('uploader');
       elm.addEventListener('change', transcode);
     </script>
