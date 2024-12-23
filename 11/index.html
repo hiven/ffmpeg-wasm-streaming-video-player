@@ -1,0 +1,24 @@
+<script src="https://cdn.jsdelivr.net/npm/@ffmpeg/ffmpeg@0.11.08/dist/umd/ffmpeg.min.js"></script> 
+<p id="message">Press the button to load FFmpeg</p>
+<button id="load-ffmpeg">Load FFmpeg</button>
+
+<script>
+    // Create FFmpeg instance
+    const { FFmpeg } = FFmpeg;
+    const ffmpeg = FFmpeg.createFFmpeg({ log: true });
+
+    // Button click to load FFmpeg
+    const button = document.getElementById('load-ffmpeg');
+    const message = document.getElementById('message');
+
+    button.addEventListener('click', async () => {
+        message.textContent = 'Loading FFmpeg...';
+
+        try {
+            await ffmpeg.load();
+            message.textContent = 'FFmpeg loaded successfully!';
+        } catch (error) {
+            message.textContent = 'Failed to load FFmpeg.';
+        }
+    });
+</script>
