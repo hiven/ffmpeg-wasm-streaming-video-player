@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Load FFmpeg</title>
+</head>
+<body>
+    <h1>FFmpeg Loading Example</h1>
+    <p id="message"></p>
+
+    <!-- Include FFmpeg CDN -->
+    <script src="https://cdn.jsdelivr.net/npm/@ffmpeg/ffmpeg@0.12.10/dist/ffmpeg.min.js"></script>
+    <script>
+        document.addEventListener("DOMContentLoaded", async () => {
+            const message = document.getElementById('message');
+            try {
+                // Load FFmpeg
+                const ffmpeg = new FFmpeg();
+                message.innerText = 'Loading FFmpeg...';
+                await ffmpeg.load();
+                message.innerText = 'FFmpeg loaded successfully!';
+            } catch (error) {
+                console.error('Error loading FFmpeg:', error);
+                message.innerText = 'Error loading FFmpeg.';
+            }
+        });
+    </script>
+</body>
+</html>
