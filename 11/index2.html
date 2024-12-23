@@ -12,9 +12,12 @@
 
     <script src="https://cdn.jsdelivr.net/npm/@ffmpeg/ffmpeg@0.11.0/dist/ffmpeg.min.js"></script>
     <script>
-        // FFmpeg setup
-        const { createFFmpeg } = FFmpeg;
-        const ffmpeg = createFFmpeg({ log: true });
+        const { FFmpeg } = FFmpegWASM;
+        let ffmpeg = null;
+        ffmpeg = new FFmpeg();
+        
+        //const { createFFmpeg } = FFmpeg;
+        //const ffmpeg = createFFmpeg({ log: true });
 
         document.addEventListener("DOMContentLoaded", function () {
             const uploader = document.getElementById('uploader');
