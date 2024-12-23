@@ -13,8 +13,9 @@
     <script src="https://cdn.jsdelivr.net/npm/@ffmpeg/ffmpeg@0.12.10/dist/umd/ffmpeg.min.js"></script>
     <script>
         // FFmpeg setup
-        const { createFFmpeg } = FFmpeg;
-        const ffmpeg = createFFmpeg({ log: true });
+        // const { createFFmpeg } = FFmpeg;
+        //const ffmpeg = createFFmpeg({ log: true });     
+        const ffmpeg = new FFmpeg();
 
         document.addEventListener("DOMContentLoaded", function () {
             const uploader = document.getElementById('uploader');
