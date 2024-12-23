@@ -13,7 +13,7 @@
     <script>
         // Create FFmpeg instance
         const { FFmpeg } = FFmpeg;
-        const ffmpeg = FFmpeg.createFFmpeg({ log: true });
+        const ffmpeg = FFmpeg.new FFmpeg();
 
         // Button click to load FFmpeg
         const button = document.getElementById('load-ffmpeg');
