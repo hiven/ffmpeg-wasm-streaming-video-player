@@ -1,0 +1,34 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <script src="https://cdn.jsdelivr.net/npm/@ffmpeg/ffmpeg@0.12.10/dist/umd/ffmpeg.min.js"></script>
+    <title>FFmpeg Loader Test</title>
+</head>
+<body>
+    <h3>FFmpeg Loader Test</h3>
+    <p id="message">Press the button to load FFmpeg</p>
+    <div id="console-log" style="background: #f5f5f5; padding: 10px; border: 1px solid #ddd; max-height: 200px; overflow-y: auto;"></div>
+    <button id="load-ffmpeg">Load FFmpeg</button>
+
+    <script>
+        // Create FFmpeg instance
+        const { FFmpeg } = FFmpeg;
+        const ffmpeg = FFmpeg.createFFmpeg({ log: true });
+
+        // Button click to load FFmpeg
+        const button = document.getElementById('load-ffmpeg');
+        const message = document.getElementById('message');
+
+        button.addEventListener('click', async () => {
+            message.textContent = 'Loading FFmpeg...';
+
+            try {
+                await ffmpeg.load();
+                message.textContent = 'FFmpeg loaded successfully!';
+            } catch (error) {
+                message.textContent = 'Failed to load FFmpeg.';
+            }
+        });
+    </script>
+</body>
+</html>
