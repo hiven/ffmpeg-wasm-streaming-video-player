@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Load FFmpeg from CDN</title>
+</head>
+<body>
+    <h1>FFmpeg Loading Example</h1>
+    <input type="file" id="uploader">
+    <p id="message"></p>
+
+    <script src="https://cdn.jsdelivr.net/npm/@ffmpeg/ffmpeg@0.11.0/dist/ffmpeg.min.js"></script>
+    <script>
+        // FFmpeg setup
+        const { createFFmpeg } = FFmpeg;
+        const ffmpeg = createFFmpeg({ log: true });
+
+        document.addEventListener("DOMContentLoaded", function () {
+            const uploader = document.getElementById('uploader');
+            const message = document.getElementById('message');
+
+            uploader.addEventListener('change', async () => {
+                try {
+                    if (!ffmpeg.isLoaded()) {
+                        message.innerHTML = 'Loading FFmpeg...';
+                        await ffmpeg.load();
+                        message.innerHTML = 'FFmpeg loaded successfully!';
+                    }
+                } catch (error) {
+                    console.error('Error loading FFmpeg:', error);
+                    message.innerHTML = 'Error loading FFmpeg.';
+                }
+            });
+        });
+    </script>
+</body>
+</html>
