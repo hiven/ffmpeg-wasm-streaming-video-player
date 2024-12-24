@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <title>Load FFmpeg</title>
+    <script defer src="https://cdn.jsdelivr.net/npm/@ffmpeg/ffmpeg@0.12.10/dist/umd/ffmpeg.min.js"></script>
+</head>
+<body>
+    <h1>FFmpeg Loading Example</h1>
+    <p id="message"></p>
+    <script>
+        document.addEventListener("DOMContentLoaded", async () => {
+            const message = document.getElementById('message');
+            try {  
+                // const { createFFmpeg } = FFmpeg;
+                //const ffmpeg = createFFmpeg();   
+                
+                //const { createFFmpeg } = FFmpeg;
+                const ffmpeg = new FFmpeg();
+                message.innerText = 'Loading FFmpeg...';
+                await ffmpeg.load();
+                message.innerText = 'FFmpeg loaded successfully!';
+            } catch (error) {
+                console.error('Error loading FFmpeg:', error);
+                message.innerText = 'Error loading FFmpeg.';
+            }
+        });
+    </script>
+</body>
+</html>
